@@ -1,6 +1,6 @@
 services:
   layerr:
-    build: .
+    image: ghcr.io/minimaxpower/layerr:latest
     container_name: layerr
     restart: unless-stopped
     init: true

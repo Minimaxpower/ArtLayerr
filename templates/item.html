@@ -81,14 +81,14 @@
     <li class="nav-item">
       <a class="nav-link {% if season and not episode %}active{% endif %}"
          href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, season=current_season_num, missing_type=missing_type if missing_type else none) }}">
-        Saisons
+        Seasons
       </a>
     </li>
     <li class="nav-item">
       {# episode='first' is resolved server-side on click, so building this link costs no Plex call #}
       <a class="nav-link {% if episode %}active{% endif %}"
          href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, season=current_season_num, episode='first', missing_type=missing_type if missing_type else none) }}">
-        Épisodes
+        Episodes
       </a>
     </li>
   </ul>

@@ -17,3 +17,14 @@
     apply(next);
   });
 })();
+
+// Show "last checked" times in the viewer's own timezone and locale
+(function() {
+  document.querySelectorAll('time.local-time[data-ts]').forEach(function(el) {
+    var ts = parseFloat(el.dataset.ts);
+    if (!ts) return;
+    var d = new Date(ts * 1000);
+    el.textContent = d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    el.setAttribute('datetime', d.toISOString());
+  });
+})();

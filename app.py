@@ -638,7 +638,7 @@ def libraries():
     if _DASHBOARD_CACHE["computed_at"]:
         computed_at_display = datetime.datetime.fromtimestamp(
             _DASHBOARD_CACHE["computed_at"]
-        ).strftime("%d/%m/%Y à %H:%M")
+        ).strftime("%d/%m/%Y at %H:%M")
 
     return render_template(
         "libraries.html",
@@ -946,8 +946,9 @@ def list_items(section_key):
         missing_type=missing_type,
         missing_counts=missing_counts,
         available_missing_types=available_missing_types,
+        last_check_ts=_ASSET_CACHE["computed_at"] if checked else None,
         last_check_display=(
-            datetime.datetime.fromtimestamp(_ASSET_CACHE["computed_at"]).strftime("%d/%m/%Y à %H:%M")
+            datetime.datetime.fromtimestamp(_ASSET_CACHE["computed_at"]).strftime("%d/%m/%Y at %H:%M")
             if checked else None
         ),
     )

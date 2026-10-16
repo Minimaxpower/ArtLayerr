@@ -16,34 +16,38 @@
     </div>
     <div class="col-md-6 text-md-end">
       {% if last_check_display %}
-        <span class="small text-muted me-2">Last checked : {{ last_check_display }}</span>
+        <span class="small text-muted me-2">Last checked: <time class="local-time" data-ts="{{ last_check_ts }}">{{ last_check_display }}</time></span>
       {% endif %}
       <a href="{{ url_for('refresh_assets', section_key=section.key, page=page, letter=letter, q=search_query if search_query else none, missing_type=missing_type if missing_type else none) }}"
-         class="btn btn-sm btn-outline-primary me-2">
+         class="btn btn-sm btn-outline-secondary">
         🔄 Update
       </a>
-      {% if checked %}
-        {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'season': 'Season posters', 'episode': 'Episode images'} %}
-        {% for t in available_missing_types %}
-          {% if missing_type == t %}
-            <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, q=search_query if search_query else none) }}"
-               class="btn btn-sm btn-warning me-1 mb-1">
-              ✕ {{ labels[t] }} ({{ missing_counts[t] }})
-            </a>
-          {% else %}
-            <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, missing_type=t, q=search_query if search_query else none) }}"
-               class="btn btn-sm btn-outline-warning me-1 mb-1">
-              Without {{ labels[t] }} ({{ missing_counts[t] }})
-            </a>
-          {% endif %}
-        {% endfor %}
-      {% endif %}
     </div>
   </div>
 
+  {% if checked %}
+    {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'season': 'Seasons', 'episode': 'Episodes'} %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em;">Missing</span>
+      {% for t in available_missing_types %}
+        {% if missing_type == t %}
+          <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, q=search_query if search_query else none) }}"
+             class="btn btn-sm btn-warning rounded-pill px-3" title="Clear filter">
+            {{ labels[t] }} <span class="opacity-75 ms-1">{{ missing_counts[t] }}</span> <span class="ms-1">✕</span>
+          </a>
+        {% else %}
+          <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, missing_type=t, q=search_query if search_query else none) }}"
+             class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            {{ labels[t] }} <span class="opacity-50 ms-1">{{ missing_counts[t] }}</span>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% if not checked %}
     <div class="alert alert-secondary">
-      No verification has been done yet — the posters/backgrounds below are marked with a “?” until you click “Check” for the first time.
+      No verification has been done yet — the posters/backgrounds below are marked with a “?” until you click “Update” for the first time.
     </div>
   {% endif %}
 

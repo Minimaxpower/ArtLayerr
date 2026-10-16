@@ -4,7 +4,7 @@
   <h2 class="mb-0">Dashboard</h2>
   <div class="d-flex align-items-center gap-3">
     {% if computed_at_display %}
-      <span class="small text-muted">Last checked : {{ computed_at_display }}</span>
+      <span class="small text-muted">Last checked: <time class="local-time" data-ts="{{ computed_at }}">{{ computed_at_display }}</time></span>
     {% endif %}
     <a href="{{ url_for('libraries', refresh=1) }}" class="btn btn-sm btn-outline-primary">🔄 Update</a>
   </div>
