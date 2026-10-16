@@ -11,12 +11,15 @@ import requests
 
 
 def sort_key(title):
-    """Normalize to NFC before lowercasing for sorting. Plex can return
-    accented titles in either precomposed or decomposed Unicode form
-    depending on the source — without this, e.g. 'Émissions' (decomposed)
-    sorts before 'Séries' because its first codepoint is a bare 'e', while
-    the same title in precomposed form would sort correctly after it."""
-    return unicodedata.normalize("NFC", title or "").lower()
+    """Sort key that ignores accents and case, so that 'Émissions' sorts
+    between 'Animes' and 'Séries'. Without stripping the accents, 'é'
+    (code point 233) sorts after 'z' and accented titles end up last.
+    NFD splits 'é' into 'e' + a combining accent, which we then drop."""
+    decomposed = unicodedata.normalize("NFD", title or "")
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return stripped.casefold()
+
+
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from plexapi.server import PlexServer
 

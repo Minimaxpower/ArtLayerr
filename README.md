@@ -78,7 +78,7 @@ docker compose up -d
 
 The connection page should be filled in automatically if you completed the `.env` correctly:
 
-![](images/connect.png)
+![](images/connect.jpg)
 
 After that you'll access the dashboard with every library of your Plex server. To begin with, I recommend you click the update button, especially if you already have some files in the assets directory.
 Then you can click on any library you want:
@@ -86,46 +86,58 @@ Then you can click on any library you want:
 ![](images/libraries-dashboard.png)
 
 You'll see a grid displaying all the movies of that library.
-You also get a visual indication of whether a movie already has a poster/background selected in the Kometa assets directory (you can also filter by name, or only show movies without a poster already selected).
+You also get a visual indication of whether a movie already has a poster/background selected in the Kometa assets directory.
 
-![](images/movies-list.png)
+![](images/movies-list.jpg)
+
+You can also search by name, or only filter by movies missing a poster/background:
+
+![](images/movies-filters.jpg)
 
 If you click on a movie, you'll see a grid displaying all the posters available on Plex for that movie (you can also download one from a URL or import one from your computer):
 
-![](images/movies-posters.png)
+![](images/movies-posters.jpg)
 
 You can choose to view backgrounds instead of posters:
 
-![](images/movies-backgrounds.png)
+![](images/movies-backgrounds.jpg)
 
 When you click the Download button, the file is downloaded to the assets directory, and a flash message reports the path:
 
-![](images/movies-download.png)
+![](images/movies-download.jpg)
 
 Clicking the title/logo in the upper left takes you back to the libraries dashboard.
 Clicking the library name brings you back to the items list of that library.
 
 In a Show library, you'll see a grid displaying all the shows of that library.
-You also get a visual indication of whether a show already has a poster/background/season poster/episode image selected in the Kometa assets directory (you can also filter by name, or only show shows without any of that).
+You also get a visual indication of whether a show already has a poster/background/season poster/episode image selected in the Kometa assets directory
+
+![](images/shows-list.jpg)
+
+You can also search by name, or only filter by shows missing a poster/background/poster season/episode image:
 Green indicates you have everything (for example all seasons and all episodes). Blue indicates that you're missing some. A good way to keep visual track of what is incomplete!
 
-![](images/shows-list.png)
+![](images/shows-filters.jpg)
 
 If you click on a show, you'll get the same kind of grid as for movies:
 
-![](images/shows-posters.png)
+![](images/shows-posters.jpg)
 
 With more options, as you can also access seasons:
 
-![](images/seasons-posters.png)
+![](images/seasons-posters.jpg)
 
 And episode images:
 
-![](images/episodes-posters.png)
+![](images/episodes-posters.jpg)
 
-If you click on Mediux Check, you can select one or more Mediux files to compare them with your library and see if you're missing anything.
+You can also select multiple images and compare them :
 
-![](images/mediux-check.png)
+![](images/compare.jpg)
+
+If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
+
+![](images/mediux-check.jpg)
 
 ## Credits
 
