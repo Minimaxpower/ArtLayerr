@@ -1,6 +1,55 @@
 {% extends 'base.html' %}
 
 {% block content %}
+  {# ——— Pagination réutilisable (en haut compacte, en bas complète) ——— #}
+  {% macro pager(window=7, small=false, prev_label='Previous', next_label='Next') %}
+    <nav aria-label="Page navigation"{% if small %} class="ms-auto"{% endif %}>
+      <ul class="pagination flex-wrap{% if small %} pagination-sm mb-0{% endif %}">
+        <li class="page-item{% if page <= 1 %} disabled{% endif %}">
+          <a class="page-link"
+             href="{{ url_for('list_items',
+                              section_key=section.key,
+                              page=page-1,
+                              letter=letter,
+                              q=search_query if search_query else none,
+                              missing_type=missing_type if missing_type else none) }}">
+            {{ prev_label }}
+          </a>
+        </li>
+
+        {% for p in range(1, pages+1) %}
+          {% if p == 1 or p == pages or (p >= page - window and p <= page + window) %}
+            <li class="page-item{% if p == page %} active{% endif %}">
+              <a class="page-link"
+                 href="{{ url_for('list_items',
+                                  section_key=section.key,
+                                  page=p,
+                                  letter=letter,
+                                  q=search_query if search_query else none,
+                                  missing_type=missing_type if missing_type else none) }}">
+                {{ p }}
+              </a>
+            </li>
+          {% elif p == page - window - 1 or p == page + window + 1 %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+
+        <li class="page-item{% if page >= pages %} disabled{% endif %}">
+          <a class="page-link"
+             href="{{ url_for('list_items',
+                              section_key=section.key,
+                              page=page+1,
+                              letter=letter,
+                              q=search_query if search_query else none,
+                              missing_type=missing_type if missing_type else none) }}">
+            {{ next_label }}
+          </a>
+        </li>
+      </ul>
+    </nav>
+  {% endmacro %}
+
   <h2>{{ section.title }} – Pick an Item</h2>
 
   <div class="row g-3 mb-3">
@@ -58,18 +107,21 @@
     {% set current_index = alphabet.index(letter) + 1 %}
   {% endif %}
 
-  <div class="btn-group mb-3" role="group" aria-label="Alphabet filter">
-    {% for loop_letter in ['All'] + alphabet %}
-      {% set idx = loop.index0 %}
-      <a href="{{ url_for('list_items',
-                           section_key=section.key,
-                           page=1,
-                           letter=loop_letter,
-                           missing_type=missing_type if missing_type else none) }}"
-         class="btn btn-sm btn-outline-secondary{% if idx == current_index %} active{% endif %}">
-        {{ loop_letter }}
-      </a>
-    {% endfor %}
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="btn-group" role="group" aria-label="Alphabet filter">
+      {% for loop_letter in ['All'] + alphabet %}
+        {% set idx = loop.index0 %}
+        <a href="{{ url_for('list_items',
+                             section_key=section.key,
+                             page=1,
+                             letter=loop_letter,
+                             missing_type=missing_type if missing_type else none) }}"
+           class="btn btn-sm btn-outline-secondary{% if idx == current_index %} active{% endif %}">
+          {{ loop_letter }}
+        </a>
+      {% endfor %}
+    </div>
+    {% if pages > 1 %}{{ pager(2, true, '‹', '›') }}{% endif %}
   </div>
 
   <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3 mb-4">
@@ -133,50 +185,5 @@
     {% endfor %}
   </div>
 
-  <nav aria-label="Page navigation">
-    <ul class="pagination flex-wrap">
-      <li class="page-item{% if page <= 1 %} disabled{% endif %}">
-        <a class="page-link"
-           href="{{ url_for('list_items',
-                            section_key=section.key,
-                            page=page-1,
-                            letter=letter,
-                            q=search_query if search_query else none,
-                            missing_type=missing_type if missing_type else none) }}">
-          Previous
-        </a>
-      </li>
-
-      {% set window = 7 %}
-      {% for p in range(1, pages+1) %}
-        {% if p == 1 or p == pages or (p >= page - window and p <= page + window) %}
-          <li class="page-item{% if p == page %} active{% endif %}">
-            <a class="page-link"
-               href="{{ url_for('list_items',
-                                section_key=section.key,
-                                page=p,
-                                letter=letter,
-                                q=search_query if search_query else none,
-                                missing_type=missing_type if missing_type else none) }}">
-                {{ p }}
-            </a>
-          </li>
-        {% elif p == page - window - 1 or p == page + window + 1 %}
-          <li class="page-item disabled"><span class="page-link">…</span></li>
-        {% endif %}
-      {% endfor %}
-
-      <li class="page-item{% if page >= pages %} disabled{% endif %}">
-        <a class="page-link"
-           href="{{ url_for('list_items',
-                            section_key=section.key,
-                            page=page+1,
-                            letter=letter,
-                            q=search_query if search_query else none,
-                            missing_type=missing_type if missing_type else none) }}">
-          Next
-        </a>
-      </li>
-    </ul>
-  </nav>
+  {{ pager(7, false) }}
 {% endblock %}
