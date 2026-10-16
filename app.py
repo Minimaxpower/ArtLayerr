@@ -1150,13 +1150,19 @@ def browse(section_key):
     except Exception:
         plex_web_url = None
 
-    # IMDb link, if Plex has an IMDb guid for this item
+    # External links from the Plex guids: IMDb for everything,
+    # TVDB for shows, TMDB for movies
     imdb_url = None
+    tvdb_url = None
+    tmdb_url = None
     try:
         for guid in item.guids:
-            if guid.id.startswith("imdb://"):
+            if guid.id.startswith("imdb://") and imdb_url is None:
                 imdb_url = f"https://www.imdb.com/title/{guid.id.replace('imdb://', '')}/"
-                break
+            elif item.type == "show" and guid.id.startswith("tvdb://") and tvdb_url is None:
+                tvdb_url = f"https://thetvdb.com/dereferrer/series/{guid.id.replace('tvdb://', '')}"
+            elif item.type == "movie" and guid.id.startswith("tmdb://") and tmdb_url is None:
+                tmdb_url = f"https://www.themoviedb.org/movie/{guid.id.replace('tmdb://', '')}"
     except Exception:
         pass
 
@@ -1180,6 +1186,8 @@ def browse(section_key):
         missing_type=missing_type,
         plex_web_url=plex_web_url,
         imdb_url=imdb_url,
+        tvdb_url=tvdb_url,
+        tmdb_url=tmdb_url,
     )
 
 
