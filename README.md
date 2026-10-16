@@ -83,7 +83,7 @@ The connection page should be filled in automatically if you completed the `.env
 After that you'll access the dashboard with every library of your Plex server. To begin with, I recommend you click the update button, especially if you already have some files in the assets directory.
 Then you can click on any library you want:
 
-![](images/libraries-dashboard.png)
+![](images/libraries-dashboard.jpg)
 
 You'll see a grid displaying all the movies of that library.
 You also get a visual indication of whether a movie already has a poster/background selected in the Kometa assets directory.

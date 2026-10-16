@@ -26,6 +26,14 @@ from plexapi.server import PlexServer
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
 
+APP_VERSION = os.environ.get("APP_VERSION", "dev")
+
+
+@app.context_processor
+def inject_version():
+    return {"app_version": APP_VERSION}
+
+
 # module‑level alphabet list so we only build it once
 ALPHABET = list(string.ascii_uppercase)
 ALPHABET.insert(0, "0-9")
