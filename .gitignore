@@ -1,0 +1,7 @@
+assets/
+@eaDir/
+.env
+*.pyc
+__pycache__/
+Thumbs.db
+venv/

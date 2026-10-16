@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Dashboard</h2>
+  <div class="d-flex align-items-center gap-3">
+    {% if computed_at_display %}
+      <span class="small text-muted">Last checked : {{ computed_at_display }}</span>
+    {% endif %}
+    <a href="{{ url_for('libraries', refresh=1) }}" class="btn btn-sm btn-outline-primary">🔄 Update</a>
+  </div>
+</div>
+
+{% if not computed_at %}
+  <div class="alert alert-secondary">
+    The first calculation is in progress as you view this page—it may take a moment, depending on the size of your libraries.
+  </div>
+{% endif %}
+
+{% set movie_libs = library_stats|selectattr('type', 'equalto', 'movie')|list %}
+{% set show_libs = library_stats|selectattr('type', 'equalto', 'show')|list %}
+{% set movie_mid = (movie_libs|length + 1) // 2 %}
+
+{% macro movie_card(lib) %}
+  <a href="{{ url_for('list_items', section_key=lib.key) }}" class="text-decoration-none text-body d-block mb-3">
+    <div class="card p-3 library-card">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong>{{ lib.title }}</strong>
+        <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
+      </div>
+      {% set lib_poster_pct = (lib.poster_done / lib.total * 100) if lib.total else 0 %}
+      <div class="small text-muted mb-1">Posters — {{ lib.poster_done }}/{{ lib.total }}</div>
+      <div class="progress mb-3" style="height: 6px;">
+        <div class="progress-bar" role="progressbar" style="width: {{ lib_poster_pct }}%; background-color: var(--accent);"></div>
+      </div>
+      {% set lib_bg_pct = (lib.bg_done / lib.total * 100) if lib.total else 0 %}
+      <div class="small text-muted mb-1">Backgrounds — {{ lib.bg_done }}/{{ lib.total }}</div>
+      <div class="progress" style="height: 6px;">
+        <div class="progress-bar" role="progressbar" style="width: {{ lib_bg_pct }}%; background-color: #3aa0c4;"></div>
+      </div>
+    </div>
+  </a>
+{% endmacro %}
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-3">
+    {% for lib in movie_libs[:movie_mid] %}{{ movie_card(lib) }}{% endfor %}
+  </div>
+
+  <div class="col-lg-3">
+    <h6 class="text-uppercase small text-muted mb-2 mt-1 d-lg-none" style="letter-spacing: .05em;">Films (suite)</h6>
+    {% for lib in movie_libs[movie_mid:] %}{{ movie_card(lib) }}{% endfor %}
+  </div>
+
+  <div class="col-lg-3">
+    {% for lib in show_libs %}
+      <a href="{{ url_for('list_items', section_key=lib.key) }}" class="text-decoration-none text-body d-block mb-3">
+        <div class="card p-3 library-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>{{ lib.title }}</strong>
+            <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
+          </div>
+          {% set lib_poster_pct = (lib.poster_done / lib.total * 100) if lib.total else 0 %}
+          <div class="small text-muted mb-1">Posters — {{ lib.poster_done }}/{{ lib.total }}</div>
+          <div class="progress mb-3" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" style="width: {{ lib_poster_pct }}%; background-color: var(--accent);"></div>
+          </div>
+          {% set lib_bg_pct = (lib.bg_done / lib.total * 100) if lib.total else 0 %}
+          <div class="small text-muted mb-1">Backgrounds — {{ lib.bg_done }}/{{ lib.total }}</div>
+          <div class="progress mb-3" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" style="width: {{ lib_bg_pct }}%; background-color: #3aa0c4;"></div>
+          </div>
+          {% set lib_season_pct = (lib.season_done / lib.season_total * 100) if lib.season_total else 0 %}
+          <div class="small text-muted mb-1">Season posters — {{ lib.season_done }}/{{ lib.season_total }}</div>
+          <div class="progress mb-3" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" style="width: {{ lib_season_pct }}%; background-color: #8e6ff0;"></div>
+          </div>
+          {% set lib_episode_pct = (lib.episode_done / lib.episode_total * 100) if lib.episode_total else 0 %}
+          <div class="small text-muted mb-1">Episode Images — {{ lib.episode_done }}/{{ lib.episode_total }}</div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" style="width: {{ lib_episode_pct }}%; background-color: #e85d9e;"></div>
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="col-lg-3">
+    <div class="row row-cols-2 g-2">
+      <div class="col">
+        <div class="card h-100 p-3 text-center">
+          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Posters</div>
+          {% set poster_pct = ((totals.poster_done / totals.poster_total * 100) | round(0) | int) if totals.poster_total else 0 %}
+          <div class="stat-ring mx-auto" style="--pct: {{ poster_pct }}; width: 90px; height: 90px;">
+            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
+              <div class="fw-bold">{{ poster_pct }}%</div>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><div class="fw-bold small">{{ totals.poster_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.poster_total - totals.poster_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.poster_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card h-100 p-3 text-center">
+          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Posters de saison</div>
+          {% set season_pct = ((totals.season_done / totals.season_total * 100) | round(0) | int) if totals.season_total else 0 %}
+          <div class="stat-ring mx-auto" style="--pct: {{ season_pct }}; --ring-color: #8e6ff0; width: 90px; height: 90px;">
+            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
+              <div class="fw-bold">{{ season_pct }}%</div>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><div class="fw-bold small">{{ totals.season_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.season_total - totals.season_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.season_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card h-100 p-3 text-center">
+          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Backgrounds</div>
+          {% set bg_pct = ((totals.bg_done / totals.bg_total * 100) | round(0) | int) if totals.bg_total else 0 %}
+          <div class="stat-ring mx-auto" style="--pct: {{ bg_pct }}; --ring-color: #3aa0c4; width: 90px; height: 90px;">
+            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
+              <div class="fw-bold">{{ bg_pct }}%</div>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><div class="fw-bold small">{{ totals.bg_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.bg_total - totals.bg_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.bg_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card h-100 p-3 text-center">
+          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Episode images</div>
+          {% set episode_pct = ((totals.episode_done / totals.episode_total * 100) | round(0) | int) if totals.episode_total else 0 %}
+          <div class="stat-ring mx-auto" style="--pct: {{ episode_pct }}; --ring-color: #e85d9e; width: 90px; height: 90px;">
+            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
+              <div class="fw-bold">{{ episode_pct }}%</div>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col"><div class="fw-bold small">{{ totals.episode_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.episode_total - totals.episode_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
+            <div class="col"><div class="fw-bold small">{{ totals.episode_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

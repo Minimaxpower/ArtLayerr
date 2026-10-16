@@ -1,0 +1,11 @@
+.env
+.git
+.gitignore
+.envrc
+__pycache__/
+*.pyc
+venv/
+README.md
+images/
+@eaDir/
+@eaDir/

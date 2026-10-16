@@ -1,0 +1,387 @@
+<!-- templates/item.html -->
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- http://127.0.0.1:5000/browse/1/items?page=1&letter=O -->
+<!-- item_page -->
+<!-- item_letter -->
+
+<h2>
+  <a href="{{ url_for('list_items', section_key=section.key, letter=item_letter, missing_type=missing_type if missing_type else none) }}">{{ section.title }}</a>: {{ item.title }}
+  {% if plex_web_url %}
+    <a href="{{ plex_web_url }}" target="_blank" class="btn btn-sm btn-outline-primary align-middle">View in Plex ↗</a>
+  {% endif %}
+  {% if imdb_url %}
+    <a href="{{ imdb_url }}" target="_blank" class="btn btn-sm btn-outline-warning align-middle">View in IMDb ↗</a>
+  {% endif %}
+</h2>
+
+<div class="mb-3">
+  {% if item.has_poster is none %}
+    <span class="badge bg-light text-dark">? Poster</span>
+  {% elif item.has_poster %}
+    <span class="badge bg-success">✓ Poster</span>
+  {% else %}
+    <span class="badge bg-secondary">— Poster</span>
+  {% endif %}
+  {% if item.has_background is none %}
+    <span class="badge bg-light text-dark">? Background</span>
+  {% elif item.has_background %}
+    <span class="badge bg-success">✓ Background</span>
+  {% else %}
+    <span class="badge bg-secondary">— Background</span>
+  {% endif %}
+  {% if section.type == 'show' %}
+    {% if item.custom_seasons is none %}
+      <span class="badge bg-light text-dark">? Seasons</span>
+    {% elif item.custom_seasons_display %}
+      <span class="badge {{ 'bg-success' if item.seasons_complete else 'bg-info text-dark' }}">{{ item.custom_seasons_display }}</span>
+    {% else %}
+      <span class="badge bg-secondary">— Seasons</span>
+    {% endif %}
+    {% if item.custom_episode_count is none %}
+      <span class="badge bg-light text-dark">? Ép.</span>
+    {% elif item.custom_episode_count > 0 %}
+      <span class="badge {{ 'bg-success' if item.episodes_complete else 'bg-info text-dark' }}">{{ item.custom_episode_count }} ep.</span>
+    {% else %}
+      <span class="badge bg-secondary">— Ep.</span>
+    {% endif %}
+  {% endif %}
+</div>
+
+<div class="d-flex justify-content-between mb-3">
+  <div>
+    <a href="{{ url_for('browse', section_key=section.key, page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">First Item</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page-1 if item_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Previous Item</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page+1 if item_page<pages else pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Next Item</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Last Item</a>
+  </div>
+  <form class="d-inline" method="get">
+    <input type="hidden" name="page" value="{{ item_page }}">
+    <input type="hidden" name="missing_type" value="{{ missing_type }}">
+    <label>Art Type</label>
+    <select name="art_type" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+      <option value="poster" {% if art_type=='poster' %}selected{% endif %}>Poster</option>
+      <option value="background" {% if art_type=='background' %}selected{% endif %}>Background</option>
+    </select>
+  </form>
+</div>
+
+{% if section.type == 'show' %}
+  {% set first_season_num = show_seasons[0].seasonNumber if show_seasons else none %}
+  {% set current_season_num = season|int if season else first_season_num %}
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link {% if not season %}active{% endif %}"
+         href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, missing_type=missing_type if missing_type else none) }}">
+        Show
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if season and not episode %}active{% endif %}"
+         href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, season=current_season_num, missing_type=missing_type if missing_type else none) }}">
+        Saisons
+      </a>
+    </li>
+    <li class="nav-item">
+      {# episode='first' is resolved server-side on click, so building this link costs no Plex call #}
+      <a class="nav-link {% if episode %}active{% endif %}"
+         href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, season=current_season_num, episode='first', missing_type=missing_type if missing_type else none) }}">
+        Épisodes
+      </a>
+    </li>
+  </ul>
+
+  <form id="filter-form" method="get" class="mb-3">
+    <input type="hidden" name="page" value="{{ item_page }}">
+    <input type="hidden" name="art_type" value="{{ art_type }}">
+    <input type="hidden" name="art_page" value="{{ art_page }}">
+    <input type="hidden" name="missing_type" value="{{ missing_type }}">
+    <div class="row g-2">
+      <div class="col-auto">
+        <label>Season</label>
+        <select name="season" class="form-select" onchange="this.form.submit()">
+          <option value="">Show Level{% if local_files.show_level %} ✓{% endif %}</option>
+          {% for s in show_seasons %}
+            <option value="{{ s.seasonNumber }}" {% if season and season|int==s.seasonNumber %}selected{% endif %}>Season {{ '%02d'|format(s.seasonNumber) }}{% if s.seasonNumber in local_files.seasons %} ✓{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if season %}
+      <div class="col-auto">
+        <label>Episode</label>
+        <select name="episode" class="form-select" onchange="this.form.submit()">
+          <option value="">Season Level</option>
+          {% for e in season_episodes %}
+            <option value="{{ e.index }}" {% if episode|int==e.index %}selected{% endif %}>Episode {{ '%02d'|format(e.index) }}{% if (season|int, e.index) in local_files.episodes %} ✓{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+  </form>
+{% endif %}
+
+{# Determine art items based on type and scope. The seasons/episodes were
+   already fetched once in browse(), so nothing here re-queries Plex for them. #}
+{% if section.type == 'movie' %}
+  {% set art_source = item %}
+{% elif selected_episode %}
+  {% set art_source = selected_episode %}
+{% elif selected_season %}
+  {% set art_source = selected_season %}
+{% else %}
+  {% set art_source = item %}
+{% endif %}
+{% set all_art = art_source.posters() if art_type == 'poster' else art_source.arts() %}
+
+{% set total_art = all_art|length %}
+{% set all_art = all_art|sort(attribute='selected', reverse=true) %}
+{% set per_page = 35 %}
+{% set art_pages = (total_art + per_page -1) // per_page %}
+{% set start = (art_page-1) * per_page %}
+{% set end = start + per_page %}
+{% set page_items = all_art[start:end] %}
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <form action="{{ url_for('upload_url') }}" method="post" class="d-flex gap-2">
+      <input type="hidden" name="rating_key" value="{{ item.ratingKey }}">
+      <input type="hidden" name="season_rating_key" value="{{ season_rating_key }}">
+      <input type="hidden" name="section_key" value="{{ section.key }}">
+      <input type="hidden" name="item_page" value="{{ item_page }}">
+      <input type="hidden" name="art_page" value="{{ art_page }}">
+      <input type="hidden" name="season" value="{{ season }}">
+      <input type="hidden" name="episode" value="{{ episode }}">
+      <input type="hidden" name="art_type" value="{{ art_type }}">
+      <input type="hidden" name="missing_type" value="{{ missing_type }}">
+      <input type="url" name="image_url" class="form-control" placeholder="https://.../image.jpg" required>
+      <button type="submit" class="btn btn-primary text-nowrap">From a URL</button>
+    </form>
+  </div>
+  <div class="col-md-6">
+    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="d-flex gap-2">
+      <input type="hidden" name="rating_key" value="{{ item.ratingKey }}">
+      <input type="hidden" name="season_rating_key" value="{{ season_rating_key }}">
+      <input type="hidden" name="section_key" value="{{ section.key }}">
+      <input type="hidden" name="item_page" value="{{ item_page }}">
+      <input type="hidden" name="art_page" value="{{ art_page }}">
+      <input type="hidden" name="season" value="{{ season }}">
+      <input type="hidden" name="episode" value="{{ episode }}">
+      <input type="hidden" name="art_type" value="{{ art_type }}">
+      <input type="hidden" name="missing_type" value="{{ missing_type }}">
+      <input type="file" name="image_file" class="form-control" accept="image/*" required>
+      <button type="submit" class="btn btn-primary text-nowrap">Uploader</button>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">First</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page-1 if art_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Prev</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page+1 if art_page<art_pages else art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Next</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Last</a>
+    <span class="ms-2 text-muted">Page {{ art_page }} / {{ art_pages }}</span>
+  </div>
+  <form method="get" class="d-inline">
+    <input type="hidden" name="page" value="{{ item_page }}">
+    <input type="hidden" name="season" value="{{ season }}">
+    <input type="hidden" name="episode" value="{{ episode }}">
+    <input type="hidden" name="art_type" value="{{ art_type }}">
+    <input type="hidden" name="missing_type" value="{{ missing_type }}">
+    <input type="number" name="art_page" min="1" max="{{ art_pages }}" value="{{ art_page }}" class="form-control d-inline-block" style="width: 80px;">
+    <button class="btn btn-secondary btn-sm">Go</button>
+  </form>
+</div>
+
+<div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3">
+  {% for img in page_items %}
+    {% if img.key.startswith("http") %}
+      {% set img_url = img.key %}
+    {% else %}
+      {% set img_url = session['base_url'] ~ img.key ~ '&X-Plex-Token=' ~ session['token'] %}
+    {% endif %}
+    <div class="col mb-4">
+      <div class="card position-relative poster-card {% if img.selected %}border-success border-3{% endif %}">
+        <div class="position-absolute d-flex align-items-center justify-content-center bg-dark bg-opacity-75 rounded"
+             style="z-index: 3; top: 8px; left: 8px; width: 28px; height: 28px;">
+          <input class="compare-checkbox" type="checkbox"
+                 data-img-key="{{ img.key|e }}" data-img-url="{{ img_url|e }}"
+                 title="Add to compare"
+                 style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
+        </div>
+        {% if img.selected %}
+          <span class="badge bg-success position-absolute m-2" style="z-index: 3; top: 0; right: 0;">✓ Shown on Plex</span>
+        {% endif %}
+        <img src="{{ img_url }}" class="card-img-top poster-img" role="button"
+             onclick="showImagePreview('{{ img_url|e }}')">
+        <div class="poster-overlay">
+          <form action="{{ url_for('download') }}" method="post">
+            <input type="hidden" name="rating_key" value="{{ item.ratingKey }}">
+            <input type="hidden" name="season_rating_key" value="{{ season_rating_key }}">
+            <input type="hidden" name="section_key" value="{{ section.key }}">
+            <input type="hidden" name="item_page" value="{{ item_page }}">
+            <input type="hidden" name="art_page" value="{{ art_page }}">
+            <input type="hidden" name="season" value="{{ season }}">
+            <input type="hidden" name="episode" value="{{ episode }}">
+            <input type="hidden" name="art_type" value="{{ art_type }}">
+            <input type="hidden" name="missing_type" value="{{ missing_type }}">
+            <input type="hidden" name="img_key" value="{{ img.key }}">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Download</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+  <div>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">First</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page-1 if art_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Prev</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page+1 if art_page<art_pages else art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Next</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Last</a>
+    <span class="ms-2 text-muted">Page {{ art_page }} / {{ art_pages }}</span>
+  </div>
+  <form method="get" class="d-inline">
+    <input type="hidden" name="page" value="{{ item_page }}">
+    <input type="hidden" name="season" value="{{ season }}">
+    <input type="hidden" name="episode" value="{{ episode }}">
+    <input type="hidden" name="art_type" value="{{ art_type }}">
+    <input type="hidden" name="missing_type" value="{{ missing_type }}">
+    <input type="number" name="art_page" min="1" max="{{ art_pages }}" value="{{ art_page }}" class="form-control d-inline-block" style="width: 80px;">
+    <button class="btn btn-secondary btn-sm">Go</button>
+  </form>
+</div>
+
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-0">
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center pt-0">
+        <img id="imagePreviewModalImg" src="" class="img-fluid" style="max-height: 85vh;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<button id="compareButton" type="button" class="btn btn-primary shadow"
+        style="position: fixed; bottom: 20px; right: 20px; z-index: 1050; display: none;"
+        onclick="openCompareModal()">
+  Compare (<span id="compareCount">0</span>)
+</button>
+
+<div class="modal fade" id="compareModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-white">Compare the posters</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body d-flex align-items-center">
+        <div id="compareModalBody" class="d-flex gap-3 justify-content-center flex-wrap w-100"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showImagePreview(url) {
+  document.getElementById('imagePreviewModalImg').src = url;
+  new bootstrap.Modal(document.getElementById('imagePreviewModal')).show();
+}
+
+// Comparison selection, persisted per-item (so it survives changing art_page
+// but resets on a different movie/show) via localStorage.
+const COMPARE_KEY = "compare_{{ item.ratingKey }}";
+const COMPARE_MAX = 4;
+const DOWNLOAD_CONTEXT = {
+  rating_key: "{{ item.ratingKey }}",
+  season_rating_key: "{{ season_rating_key }}",
+  section_key: "{{ section.key }}",
+  item_page: "{{ item_page }}",
+  art_page: "{{ art_page }}",
+  season: "{{ season }}",
+  episode: "{{ episode }}",
+  art_type: "{{ art_type }}",
+  missing_type: "{{ missing_type }}"
+};
+
+function loadCompareSelection() {
+  try {
+    return JSON.parse(localStorage.getItem(COMPARE_KEY) || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCompareSelection(list) {
+  localStorage.setItem(COMPARE_KEY, JSON.stringify(list));
+}
+
+function updateCompareButton() {
+  const list = loadCompareSelection();
+  document.getElementById('compareCount').textContent = list.length;
+  document.getElementById('compareButton').style.display = list.length >= 2 ? 'inline-block' : 'none';
+}
+
+function initCompareCheckboxes() {
+  const list = loadCompareSelection();
+  document.querySelectorAll('.compare-checkbox').forEach(function (cb) {
+    cb.checked = list.some(function (entry) { return entry.img_key === cb.dataset.imgKey; });
+    cb.addEventListener('change', function () {
+      let current = loadCompareSelection();
+      if (cb.checked) {
+        if (current.length >= COMPARE_MAX) {
+          cb.checked = false;
+          alert("Maximum " + COMPARE_MAX + " posters to compare at the same time.");
+          return;
+        }
+        current.push({ img_key: cb.dataset.imgKey, img_url: cb.dataset.imgUrl });
+      } else {
+        current = current.filter(function (entry) { return entry.img_key !== cb.dataset.imgKey; });
+      }
+      saveCompareSelection(current);
+      updateCompareButton();
+    });
+  });
+  updateCompareButton();
+}
+
+function openCompareModal() {
+  const list = loadCompareSelection();
+  const body = document.getElementById('compareModalBody');
+  body.innerHTML = '';
+  // Give each image as much room as possible: full-bleed columns sized by
+  // how many are being compared, rather than a small fixed thumbnail size.
+  const widthPct = Math.floor(90 / list.length);
+  list.forEach(function (entry) {
+    const col = document.createElement('div');
+    col.style.maxWidth = widthPct + 'vw';
+    col.innerHTML =
+      '<img src="' + entry.img_url + '" class="img-fluid mb-2 rounded" style="max-height:82vh; width:100%; object-fit:contain;">' +
+      '<form method="post" action="{{ url_for('download') }}">' +
+      '<input type="hidden" name="rating_key" value="' + DOWNLOAD_CONTEXT.rating_key + '">' +
+      '<input type="hidden" name="season_rating_key" value="' + DOWNLOAD_CONTEXT.season_rating_key + '">' +
+      '<input type="hidden" name="section_key" value="' + DOWNLOAD_CONTEXT.section_key + '">' +
+      '<input type="hidden" name="item_page" value="' + DOWNLOAD_CONTEXT.item_page + '">' +
+      '<input type="hidden" name="art_page" value="' + DOWNLOAD_CONTEXT.art_page + '">' +
+      '<input type="hidden" name="season" value="' + DOWNLOAD_CONTEXT.season + '">' +
+      '<input type="hidden" name="episode" value="' + DOWNLOAD_CONTEXT.episode + '">' +
+      '<input type="hidden" name="art_type" value="' + DOWNLOAD_CONTEXT.art_type + '">' +
+      '<input type="hidden" name="missing_type" value="' + DOWNLOAD_CONTEXT.missing_type + '">' +
+      '<input type="hidden" name="img_key" value="' + entry.img_key + '">' +
+      '<button type="submit" class="btn btn-success w-100">Choose this poster</button>' +
+      '</form>';
+    body.appendChild(col);
+  });
+  new bootstrap.Modal(document.getElementById('compareModal')).show();
+}
+
+document.addEventListener('DOMContentLoaded', initCompareCheckboxes);
+</script>
+{% endblock %}

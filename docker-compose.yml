@@ -1,0 +1,15 @@
+services:
+  layerr:
+    build: .
+    container_name: layerr
+    restart: unless-stopped
+    init: true
+    ports:
+      - "3535:5000"
+    volumes:
+      - ${ASSETS_DIR:-./assets}:/assets
+    environment:
+      - PLEX_BASE_URL=${PLEX_BASE_URL}
+      - PLEX_TOKEN=${PLEX_TOKEN}
+      - PLEX_ASSET_DIR=/assets
+      - SECRET_KEY=${SECRET_KEY}
