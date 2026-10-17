@@ -59,12 +59,12 @@ PREF_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 def get_sort_pref():
     """Sort mode: ?sort= wins (the dropdown), then the cookie, then the default."""
-    value = request.args.get("sort") or request.cookies.get("layerr_sort")
+    value = request.args.get("sort") or request.cookies.get("artlayerr_sort")
     return value if value in SORT_OPTIONS else DEFAULT_SORT
 
 
 def get_per_page_pref():
-    raw = request.args.get("per_page") or request.cookies.get("layerr_per_page")
+    raw = request.args.get("per_page") or request.cookies.get("artlayerr_per_page")
     try:
         value = int(raw)
     except (TypeError, ValueError):
@@ -1023,8 +1023,8 @@ def list_items(section_key):
         ),
     ))
     # remember the choices for next time and for the item page's navigation
-    resp.set_cookie("layerr_sort", sort, max_age=PREF_COOKIE_MAX_AGE, samesite="Lax")
-    resp.set_cookie("layerr_per_page", str(per_page), max_age=PREF_COOKIE_MAX_AGE, samesite="Lax")
+    resp.set_cookie("artlayerr_sort", sort, max_age=PREF_COOKIE_MAX_AGE, samesite="Lax")
+    resp.set_cookie("artlayerr_per_page", str(per_page), max_age=PREF_COOKIE_MAX_AGE, samesite="Lax")
     return resp
 
 

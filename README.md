@@ -1,4 +1,7 @@
-# Layerr
+# ArtLayerr
+
+> **Renamed:** ArtLayerr was previously called Layerr. If you installed the old image
+> (`ghcr.io/minimaxpower/layerr`), switch to `ghcr.io/minimaxpower/artlayerr`: the old one no longer receives updates.
 
 A web UI that lets you scroll through the images that Plex provides for each item (movie, show, season, episode, background) and pick the one you want with a single click.
 
@@ -8,24 +11,24 @@ You have to fill in the `.env` file for it to work.
 
 ## Requirements
 
-- A Plex Media Server reachable from the machine running Layerr
+- A Plex Media Server reachable from the machine running ArtLayerr
 - Your [Plex token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/)
 - Docker with Docker Compose (on Synology: Container Manager)
-- The folder where Kometa reads its assets, so Layerr can write images there
+- The folder where Kometa reads its assets, so ArtLayerr can write images there
 
 ## Installation (Docker Compose, recommended)
 
-1. Create a folder for Layerr and go into it:
+1. Create a folder for ArtLayerr and go into it:
    ```
-   mkdir layerr && cd layerr
+   mkdir artlayerr && cd artlayerr
    ```
 
 2. Create a `docker-compose.yml`:
    ```yaml
    services:
-     layerr:
-       image: ghcr.io/minimaxpower/layerr:latest
-       container_name: layerr
+     artlayerr:
+       image: ghcr.io/minimaxpower/artlayerr:latest
+       container_name: artlayerr
        restart: unless-stopped
        init: true
        ports:
@@ -70,7 +73,7 @@ docker compose up -d
 
 ### Synology (Container Manager)
 
-1. Copy `docker-compose.yml` and `.env` to a folder on your NAS (for example `/volume1/docker/layerr`).
+1. Copy `docker-compose.yml` and `.env` to a folder on your NAS (for example `/volume1/docker/artlayerr`).
 2. In Container Manager, go to **Project → Create**, choose that folder as the path, and select "Use existing docker-compose.yml".
 3. Start the project, then open `http://YOUR_NAS_IP:3535`.
 
@@ -141,7 +144,7 @@ If you click on Mediux Check, you can select one or more [Mediux](https://mediux
 
 ## Credits
 
-Layerr started as a fork of [Plex Image Picker](https://github.com/chazlarson/Media-Scripts/tree/main/Plex%20Image%20Picker)
+ArtLayerr started as a fork of [Plex Image Picker](https://github.com/chazlarson/Media-Scripts/tree/main/Plex%20Image%20Picker)
 by chazlarson and has since been heavily modified.
 
 ## License

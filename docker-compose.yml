@@ -1,7 +1,7 @@
 services:
-  layerr:
-    image: ghcr.io/minimaxpower/layerr:latest
-    container_name: layerr
+  artlayerr:
+    image: ghcr.io/minimaxpower/artlayerr:latest
+    container_name: artlayerr
     restart: unless-stopped
     init: true
     ports:
