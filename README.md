@@ -151,6 +151,12 @@ You can also select multiple images and compare them :
 
 Once a check has been run, the **Export** button (on the dashboard, and on each library's list) downloads what is missing as a CSV file (one row per item, with TMDB/TVDB/IMDB ids and the asset folder name) or as a plain text list. On a library's list it exports the whole library for the current filter; on the dashboard it exports every library.
 
+The four rings on Library Dashboard (posters, season posters, backgrounds, episode images) are now links to what is missing. If only one library concerned: opens its filtered list directly; several: a small picker.
+
+![](images/rings.jpg)
+
+![](images/missing.jpg)
+
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 
 ![](images/mediux-check.jpg)
