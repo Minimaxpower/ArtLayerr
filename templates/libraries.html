@@ -47,7 +47,7 @@
   </div>
 
   <div class="col-lg-3">
-    <h6 class="text-uppercase small text-muted mb-2 mt-1 d-lg-none" style="letter-spacing: .05em;">Films (suite)</h6>
+    <h6 class="text-uppercase small text-muted mb-2 mt-1 d-lg-none" style="letter-spacing: .05em;">Movies (continued)</h6>
     {% for lib in movie_libs[movie_mid:] %}{{ movie_card(lib) }}{% endfor %}
   </div>
 
@@ -105,7 +105,7 @@
 
       <div class="col">
         <a href="{{ url_for('missing_overview', missing_type='season') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
-          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Posters de saison</div>
+          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Season posters</div>
           {% set season_pct = ((totals.season_done / totals.season_total * 100) | round(0) | int) if totals.season_total else 0 %}
           <div class="stat-ring mx-auto" style="--pct: {{ season_pct }}; --ring-color: #8e6ff0; width: 90px; height: 90px;">
             <div class="stat-ring-inner" style="width: 68px; height: 68px;">

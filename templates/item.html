@@ -49,7 +49,7 @@
       <span class="badge bg-secondary">— Seasons</span>
     {% endif %}
     {% if item.custom_episode_count is none %}
-      <span class="badge bg-light text-dark">? Ép.</span>
+      <span class="badge bg-light text-dark">? Ep.</span>
     {% elif item.custom_episode_count > 0 %}
       <span class="badge {{ 'bg-success' if item.episodes_complete else 'bg-info text-dark' }}">{{ item.custom_episode_count }} ep.</span>
     {% else %}
@@ -210,7 +210,7 @@
     {% if img.key.startswith("http") %}
       {% set img_url = img.key %}
     {% else %}
-      {% set img_url = session['base_url'] ~ img.key ~ '&X-Plex-Token=' ~ session['token'] %}
+      {% set img_url = url_for('plex_img', path=img.key) %}
     {% endif %}
     <div class="col mb-4">
       <div class="card position-relative poster-card {% if img.selected %}border-success border-3{% endif %}">

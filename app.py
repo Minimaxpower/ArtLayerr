@@ -7,6 +7,9 @@ import json
 import re
 import unicodedata
 import hmac
+import threading
+import secrets
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import requests
 
@@ -21,7 +24,7 @@ def sort_key(title):
     return stripped.casefold()
 
 
-from flask import Flask, flash, make_response, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, flash, make_response, redirect, render_template, request, session, url_for
 from plexapi.server import PlexServer
 
 app = Flask(__name__)
@@ -74,6 +77,81 @@ def inject_auth():
     return {"auth_enabled": bool(APP_PASSWORD)}
 
 
+# ---- "new version available" notice ----------------------------------------
+# Compares APP_VERSION with the highest vX.Y.Z tag of the GitHub repo. The
+# check runs in a background thread (a page never waits for GitHub), is cached
+# for 6 hours and fails silently. Set DISABLE_UPDATE_CHECK=1 to turn it off
+# (no request to GitHub at all). Builds without a version ("dev", bare commit
+# hash) are never compared.
+GITHUB_REPO = "Minimaxpower/ArtLayerr"
+UPDATE_CHECK_ENABLED = os.environ.get("DISABLE_UPDATE_CHECK", "").strip().lower() not in ("1", "true", "yes", "on")
+UPDATE_CHECK_INTERVAL = 6 * 3600
+UPDATE_RETRY_INTERVAL = 30 * 60
+_UPDATE_STATE = {"latest": None, "next_check": 0.0, "running": False}
+_UPDATE_LOCK = threading.Lock()
+_TAG_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")           # a release tag, no suffix
+_VERSION_PREFIX_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)")  # also "v2.0.0-3-gabc1234"
+
+
+def _version_tuple(text, strict=False):
+    m = (_TAG_RE if strict else _VERSION_PREFIX_RE).match((text or "").strip())
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def _fetch_latest_tag():
+    resp = requests.get(
+        f"https://api.github.com/repos/{GITHUB_REPO}/tags",
+        params={"per_page": 100},
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "ArtLayerr"},
+        timeout=5,
+    )
+    resp.raise_for_status()
+    best = None
+    for tag in resp.json():
+        name = tag.get("name", "")
+        v = _version_tuple(name, strict=True)
+        if v and (best is None or v > best[0]):
+            best = (v, name)
+    return best[1] if best else None
+
+
+def _refresh_latest_version():
+    try:
+        latest, ok = _fetch_latest_tag(), True
+    except Exception:
+        latest, ok = None, False
+    with _UPDATE_LOCK:
+        if ok:
+            _UPDATE_STATE["latest"] = latest
+            _UPDATE_STATE["next_check"] = time.time() + UPDATE_CHECK_INTERVAL
+        else:
+            _UPDATE_STATE["next_check"] = time.time() + UPDATE_RETRY_INTERVAL
+        _UPDATE_STATE["running"] = False
+
+
+def get_update_info():
+    """{'version', 'url'} when a newer release tag exists, else None."""
+    if not UPDATE_CHECK_ENABLED:
+        return None
+    current = _version_tuple(APP_VERSION)
+    if current is None:
+        return None
+    with _UPDATE_LOCK:
+        if time.time() >= _UPDATE_STATE["next_check"] and not _UPDATE_STATE["running"]:
+            _UPDATE_STATE["running"] = True
+            threading.Thread(target=_refresh_latest_version, daemon=True).start()
+        latest = _UPDATE_STATE["latest"]
+    latest_t = _version_tuple(latest, strict=True) if latest else None
+    if latest_t and latest_t > current:
+        return {"version": latest, "url": f"https://github.com/{GITHUB_REPO}/releases/tag/{latest}"}
+    return None
+
+
+@app.context_processor
+def inject_update():
+    return {"update_info": get_update_info()}
+
+
 @app.before_request
 def require_password():
     if not APP_PASSWORD:
@@ -104,6 +182,7 @@ def login():
             supplied = request.form.get("password", "")
             if hmac.compare_digest(supplied.encode("utf-8"), APP_PASSWORD.encode("utf-8")):
                 _LOGIN_FAILURES.pop(ip, None)
+                forget_token()
                 session.clear()
                 session["authenticated"] = True
                 return redirect(next_url)
@@ -114,6 +193,7 @@ def login():
 
 @app.route("/logout")
 def logout():
+    forget_token()
     session.clear()
     return redirect(url_for("login") if APP_PASSWORD else url_for("connect"))
 
@@ -136,8 +216,8 @@ SORT_OPTIONS = {
     "year_asc": "Year (oldest)",
 }
 DEFAULT_SORT = "title"
-PER_PAGE_OPTIONS = [24, 48, 96, 192]  # all multiples of 6: no orphan row on the desktop grid
-DEFAULT_PER_PAGE = 24
+PER_PAGE_OPTIONS = [12, 24, 48, 96, 192]  # all multiples of 6: no orphan row on the desktop grid
+DEFAULT_PER_PAGE = 12
 PREF_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 
@@ -352,8 +432,8 @@ _MISSING_CACHE = {}
 MISSING_TYPES = {
     "poster": {"label": "poster", "show_only": False},
     "background": {"label": "background", "show_only": False},
-    "season": {"label": "poster de saison", "show_only": True},
-    "episode": {"label": "image d'épisode", "show_only": True},
+    "season": {"label": "season poster", "show_only": True},
+    "episode": {"label": "episode image", "show_only": True},
 }
 
 
@@ -578,9 +658,9 @@ def parse_mediux_yaml(yml_text):
         import yaml
     except ImportError:
         return None, (
-            "PyYAML n'est pas installé dans le conteneur : ajoute « PyYAML » à "
-            "requirements.txt puis rebuild. En attendant, seule la comparaison "
-            "des séries (sans le détail saisons/épisodes) est disponible."
+            "PyYAML is not installed in the container: add \"PyYAML\" to "
+            "requirements.txt and rebuild. Until then, only the show-level "
+            "comparison (without the season/episode detail) is available."
         ), []
 
     base = getattr(yaml, "CSafeLoader", yaml.SafeLoader)  # C parser when available: ~10x faster
@@ -609,12 +689,12 @@ def parse_mediux_yaml(yml_text):
         data = yaml.load(yml_text, Loader=DuplicateAwareLoader)
     except yaml.YAMLError as e:
         mark = getattr(e, "problem_mark", None)
-        where = f" (ligne {mark.line + 1}, colonne {mark.column + 1})" if mark else ""
+        where = f" (line {mark.line + 1}, column {mark.column + 1})" if mark else ""
         problem = getattr(e, "problem", None) or str(e)
-        return None, f"Erreur de syntaxe YAML{where} : {problem}", []
+        return None, f"YAML syntax error{where}: {problem}", []
 
     warnings = [
-        f"Clé « {key} » en double à la ligne {line} : seule la dernière occurrence est prise en compte."
+        f"Duplicate key \"{key}\" at line {line}: only the last occurrence is used."
         for key, line in duplicates
     ]
     return data, None, warnings
@@ -732,9 +812,48 @@ def load_show_structures(plex, shows, force=False):
     return structures, errors, hits
 
 
+# ---- Plex token: kept on the server, never in the cookie or in the pages ----
+# The session cookie only carries a random connection id (or a "use the token
+# from the environment" flag); the token itself lives in this in-memory table.
+# Consequences: a restart of the container forgets manually typed tokens (the
+# connection page asks again), and the app must run as ONE process (the other
+# caches in this file already assume that).
+_TOKENS = OrderedDict()  # connection id -> Plex token typed in by hand
+_TOKENS_LOCK = threading.Lock()
+MAX_TOKENS = 50
+
+
+def get_token():
+    if session.get("token_from_env"):
+        return os.environ.get("PLEX_TOKEN") or None
+    with _TOKENS_LOCK:
+        return _TOKENS.get(session.get("cid"))
+
+
+def forget_token():
+    with _TOKENS_LOCK:
+        _TOKENS.pop(session.get("cid"), None)
+    session.pop("cid", None)
+    session.pop("token_from_env", None)
+
+
+def set_token(token, from_env=False):
+    forget_token()
+    session.pop("token", None)  # older versions kept the token in the cookie
+    if from_env:
+        session["token_from_env"] = True
+        return
+    cid = secrets.token_urlsafe(16)
+    with _TOKENS_LOCK:
+        _TOKENS[cid] = token
+        while len(_TOKENS) > MAX_TOKENS:
+            _TOKENS.popitem(last=False)
+    session["cid"] = cid
+
+
 def get_plex():
     base_url = session.get("base_url")
-    token = session.get("token")
+    token = get_token()
     if not base_url or not token:
         return None
     # default plexapi timeout is 30s; a big library or a busy Plex server
@@ -756,8 +875,9 @@ def connect():
         # The configured token is never written into the page. A blank field
         # means "use the configured one" -- but only for the configured URL, so
         # the token can't be sent to a server the visitor typed in.
+        use_env_token = False
         if not token and env_token and base_url.rstrip("/") == env_base_url.rstrip("/"):
-            token = env_token
+            token, use_env_token = env_token, True
         if not token:
             return render_template(
                 "connect.html",
@@ -767,16 +887,16 @@ def connect():
                 error="A Plex token is required for this URL.",
             )
         session["base_url"] = base_url
-        session["token"] = token
+        set_token(token, from_env=use_env_token)
         session["asset_dir"] = (
             "assets" if not request.form["asset_dir"] else request.form["asset_dir"]
         )
         return redirect(url_for("libraries"))
 
     # if both URL and token are provided via env, skip the form entirely
-    if env_base_url and env_token and not session.get("base_url"):
+    if env_base_url and env_token and not get_token():
         session["base_url"] = env_base_url
-        session["token"] = env_token
+        set_token(env_token, from_env=True)
         session["asset_dir"] = env_asset_dir
         return redirect(url_for("libraries"))
 
@@ -787,6 +907,39 @@ def connect():
         default_asset_dir=env_asset_dir,
         error=None,
     )
+
+
+# Images hosted by Plex are fetched by the server, so the browser never sees
+# the token (and never needs to reach the Plex address itself).
+_PLEX_IMG_RE = re.compile(r"^/library/[A-Za-z0-9_\-./:%?&=+]+$")
+
+
+@app.route("/plex_img")
+def plex_img():
+    base_url = session.get("base_url")
+    token = get_token()
+    if not base_url or not token:
+        abort(403)
+    path = request.args.get("path", "")
+    if not _PLEX_IMG_RE.match(path) or ".." in path:
+        abort(400)
+    try:
+        r = requests.get(
+            base_url.rstrip("/") + path,
+            headers={"X-Plex-Token": token},
+            timeout=30,
+        )
+    except requests.exceptions.RequestException:
+        abort(502)
+    if r.status_code != 200:
+        abort(502)
+    content_type = r.headers.get("Content-Type", "")
+    if not content_type.startswith("image/"):
+        abort(502)
+    resp = Response(r.content, content_type=content_type)
+    # Plex puts a timestamp in the path, so a changed image gets a new URL
+    resp.headers["Cache-Control"] = "private, max-age=86400"
+    return resp
 
 
 @app.route("/libraries")
@@ -890,7 +1043,7 @@ def mediux_check():
             try:
                 yml_text = upload.read().decode("utf-8", errors="replace")
             except Exception as e:
-                flash(f"Impossible de lire « {upload.filename} » : {e}")
+                flash(f"Could not read \"{upload.filename}\": {e}")
                 continue
             names = extract_mediux_tvdb_ids(yml_text)
             data, error, warnings = parse_mediux_yaml(yml_text)
@@ -1062,7 +1215,7 @@ def list_items(section_key):
     try:
         all_items_full = sort_items(list(section.all()), sort)
     except requests.exceptions.RequestException:
-        flash("Plex a mis trop de temps à répondre (serveur occupé ou bibliothèque volumineuse). Réessaie dans un instant.")
+        flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
         return redirect(url_for("libraries"))
 
     # give everything a global index
@@ -1187,7 +1340,7 @@ def refresh_assets(section_key):
         return redirect(url_for("connect"))
 
     refresh_asset_check(plex, section_key)
-    flash("Vérification des posters/backgrounds effectuée.")
+    flash("Posters/backgrounds check completed.")
 
     # bounce back to wherever the person was (list or item page), keeping
     # whatever letter/search/page/missing_type state was already in the URL
@@ -1282,15 +1435,15 @@ def browse(section_key):
                 section, missing_type=missing_type, sort=get_sort_pref()
             )
         except requests.exceptions.RequestException:
-            flash("Plex a mis trop de temps à répondre (serveur occupé ou bibliothèque volumineuse). Réessaie dans un instant.")
+            flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
             return redirect(url_for("libraries"))
         if missing_keys is None:
-            flash("Lance d'abord une vérification avant d'utiliser ce filtre.")
+            flash("Run a check first before using this filter.")
             return redirect(url_for("list_items", section_key=section.key))
         pages = len(missing_keys)
         if not pages:
             label = MISSING_TYPES[missing_type]["label"]
-            flash(f"Tous les items ont déjà un {label} \u2014 filtre retiré.")
+            flash(f"All items already have a {label} \u2014 filter removed.")
             return redirect(
                 url_for("list_items", section_key=section.key, missing_type=missing_type)
             )
@@ -1302,7 +1455,7 @@ def browse(section_key):
         try:
             items = sort_items(list(section.all()), get_sort_pref())
         except requests.exceptions.RequestException:
-            flash("Plex a mis trop de temps à répondre (serveur occupé ou bibliothèque volumineuse). Réessaie dans un instant.")
+            flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
             return redirect(url_for("libraries"))
         pages = len(items)
         item_page = int(request.args.get("page", 1))
@@ -1335,7 +1488,7 @@ def browse(section_key):
         if selected_season is not None:
             season_rating_key = selected_season.ratingKey
             season_episodes = selected_season.episodes()
-            if episode == "first":  # set by the "Épisodes" tab, resolved only on click
+            if episode == "first":  # set by the "Episodes" tab, resolved only on click
                 episode = str(season_episodes[0].index) if season_episodes else None
             if episode:
                 try:
@@ -1498,7 +1651,7 @@ def download():
     if img_key.startswith("http"):
         img_url = img_key
     else:
-        img_url = f"{session['base_url']}{img_key}&X-Plex-Token={session['token']}"
+        img_url = f"{session['base_url']}{img_key}&X-Plex-Token={get_token()}"
 
     resp = requests.get(img_url)
     with open(os.path.join(base_dir, filename), "wb") as f:
@@ -1537,7 +1690,7 @@ def upload_url():
     image_url = request.form.get("image_url", "").strip()
 
     if not image_url:
-        flash("Aucune URL fournie.")
+        flash("No URL provided.")
         return redirect(
             url_for(
                 "browse",
@@ -1574,7 +1727,7 @@ def upload_url():
             refresh_asset_check(plex, ctx["section_key"])
         flash(f"Saved to {os.path.join(base_dir, filename)}")
     except Exception as e:
-        flash(f"Échec du téléchargement depuis l'URL : {e}")
+        flash(f"Download from URL failed: {e}")
 
     return redirect(
         url_for(

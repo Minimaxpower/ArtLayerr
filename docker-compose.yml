@@ -14,3 +14,4 @@ services:
       - PLEX_ASSET_DIR=/assets
       - SECRET_KEY=${SECRET_KEY}
       - APP_PASSWORD=${APP_PASSWORD:-}
+      - DISABLE_UPDATE_CHECK=${DISABLE_UPDATE_CHECK:-}

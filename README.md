@@ -41,6 +41,7 @@ You have to fill in the `.env` file for it to work.
          - PLEX_ASSET_DIR=/assets
          - SECRET_KEY=${SECRET_KEY}
          - APP_PASSWORD=${APP_PASSWORD:-}
+         - DISABLE_UPDATE_CHECK=${DISABLE_UPDATE_CHECK:-}
    ```
 
 3. Create a `.env` file next to it (you can start from [`.env.example`](.env.example)):
@@ -50,6 +51,7 @@ You have to fill in the `.env` file for it to work.
    SECRET_KEY=RANDOM_SECRET_KEY_OF_YOUR_CHOICE
    ASSETS_DIR=/path/to/your/assets
    APP_PASSWORD=
+   DISABLE_UPDATE_CHECK=
    ```
 
    | Variable | Description |
@@ -59,6 +61,7 @@ You have to fill in the `.env` file for it to work.
    | `SECRET_KEY` | Any long random string (generate one with `openssl rand -base64 32`) |
    | `ASSETS_DIR` | Host folder where images are saved (your Kometa assets directory) |
    | `APP_PASSWORD` | *Optional.* If set, the whole app asks for this password. Leave empty to disable (default) |
+   | `DISABLE_UPDATE_CHECK` | *Optional.* The "new version available" badge relies on a check against GitHub (at most one request every 6 hours). Set to `1` (or `true`) to turn it off. Empty, unset or `0` keeps it on (default) |
 
 4. Start it:
    ```
@@ -84,15 +87,11 @@ docker compose up -d
 
 ## Usage
 
-The connection page should be filled in automatically if you completed the `.env` correctly. If so, you just have to click on "connect":
+The connection page should be filled in automatically if you completed the `.env` correctly:
 
 ![](images/connect.jpg)
 
-If you added a password in the `.env`, you will see this page instead:
-
-![](images/password.jpg)
-
-After that you'll access the dashboard with every library of your Plex server. To begin with, I recommend you click the update button, especially if you already have some files in the assets directory (might take a bit of time since it has to scan /assets and Plex).
+After that you'll access the dashboard with every library of your Plex server. To begin with, I recommend you click the update button, especially if you already have some files in the assets directory.
 Then you can click on any library you want:
 
 ![](images/libraries-dashboard.jpg)
@@ -143,19 +142,13 @@ And episode images:
 
 ![](images/episodes-posters.jpg)
 
-You can also select multiple images and compare them:
+You can also select multiple images and compare them :
 
 ![](images/compare.jpg)
 
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 
 ![](images/mediux-check.jpg)
-
-Since v2.1.0 you can now also clik in the graphs from the dashboard. It will send you now to a new page that will automatically filters what's missing for a specified library:
-
-![](images/graphs.jpg)
-
-![](images/missing.jpg)
 
 ## Credits
 

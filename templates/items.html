@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  {# ——— Pagination réutilisable (en haut compacte, en bas complète) ——— #}
+  {# ——— Reusable pagination (compact at the top, full at the bottom) ——— #}
   {% macro pager(window=7, small=false, prev_label='Previous', next_label='Next') %}
     <nav aria-label="Page navigation"{% if small %} class="ms-auto"{% endif %}>
       <ul class="pagination flex-wrap{% if small %} pagination-sm mb-0{% endif %}">
@@ -186,7 +186,7 @@
               {% endif %}
             </div>
             {% if item.thumb %}
-              <img src="{{ session['base_url'] }}{{ item.thumb }}?X-Plex-Token={{ session['token'] }}"
+              <img src="{{ url_for('plex_img', path=item.thumb) }}"
                    class="card-img-top poster-img" style="aspect-ratio: 2 / 3; object-fit: cover;"
                    alt="{{ item.title }}" loading="lazy">
             {% else %}
