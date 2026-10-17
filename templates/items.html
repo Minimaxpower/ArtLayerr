@@ -74,9 +74,9 @@
     </div>
   </div>
 
-  {% if checked %}
-    {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'season': 'Seasons', 'episode': 'Episodes'} %}
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'season': 'Seasons', 'episode': 'Episodes'} %}
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    {% if checked %}
       <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em;">Missing</span>
       {% for t in available_missing_types %}
         {% if missing_type == t %}
@@ -91,8 +91,27 @@
           </a>
         {% endif %}
       {% endfor %}
-    </div>
-  {% endif %}
+    {% endif %}
+
+    {# Sort order + page size: a GET form that keeps the current search/letter/filter and restarts at page 1 #}
+    <form method="get" class="d-flex align-items-center gap-2 ms-auto">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      {% if letter != 'All' %}<input type="hidden" name="letter" value="{{ letter }}">{% endif %}
+      {% if missing_type %}<input type="hidden" name="missing_type" value="{{ missing_type }}">{% endif %}
+      <span class="small text-muted text-uppercase" style="letter-spacing: .05em;">Sort</span>
+      <select name="sort" class="form-select form-select-sm w-auto" aria-label="Sort order" onchange="this.form.submit()">
+        {% for key, label in sort_options.items() %}
+          <option value="{{ key }}"{% if key == sort %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="per_page" class="form-select form-select-sm w-auto" aria-label="Items per page" onchange="this.form.submit()">
+        {% for n in per_page_options %}
+          <option value="{{ n }}"{% if n == per_page %} selected{% endif %}>{{ n }} per page</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit" class="btn btn-sm btn-secondary">Apply</button></noscript>
+    </form>
+  </div>
 
   {% if not checked %}
     <div class="alert alert-secondary">

@@ -20,7 +20,7 @@ def sort_key(title):
     return stripped.casefold()
 
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, make_response, redirect, render_template, request, session, url_for
 from plexapi.server import PlexServer
 
 app = Flask(__name__)
@@ -37,6 +37,60 @@ def inject_version():
 # module‑level alphabet list so we only build it once
 ALPHABET = list(string.ascii_uppercase)
 ALPHABET.insert(0, "0-9")
+
+# ---- list sorting and page size -------------------------------------------
+# Both are remembered in plain cookies (not the login session), so they stick
+# between visits AND reach the item page without being threaded through every
+# URL: the item page's Previous/Next must walk the list in the same order the
+# grid shows, and both read the same cookie.
+SORT_OPTIONS = {
+    "title": "Title A–Z",
+    "title_desc": "Title Z–A",
+    "added": "Recently added",
+    "added_asc": "Oldest added",
+    "year_desc": "Year (newest)",
+    "year_asc": "Year (oldest)",
+}
+DEFAULT_SORT = "title"
+PER_PAGE_OPTIONS = [24, 48, 96, 192]  # all multiples of 6: no orphan row on the desktop grid
+DEFAULT_PER_PAGE = 24
+PREF_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
+
+
+def get_sort_pref():
+    """Sort mode: ?sort= wins (the dropdown), then the cookie, then the default."""
+    value = request.args.get("sort") or request.cookies.get("layerr_sort")
+    return value if value in SORT_OPTIONS else DEFAULT_SORT
+
+
+def get_per_page_pref():
+    raw = request.args.get("per_page") or request.cookies.get("layerr_per_page")
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_PER_PAGE
+    return value if value in PER_PAGE_OPTIONS else DEFAULT_PER_PAGE
+
+
+def sort_items(items, sort):
+    """Order Plex items for the chosen mode. 'title' keeps Plex's own order, so
+    the default view is exactly what it was before. Python's sort is stable,
+    so items that tie (same year, same added date) stay in title order. Items
+    with no year always go last."""
+    if sort == "title_desc":
+        return list(reversed(items))
+    if sort in ("added", "added_asc"):
+        return sorted(
+            items,
+            key=lambda i: getattr(i, "addedAt", None) or datetime.datetime.min,
+            reverse=(sort == "added"),
+        )
+    if sort in ("year_desc", "year_asc"):
+        known = [i for i in items if getattr(i, "year", None)]
+        unknown = [i for i in items if not getattr(i, "year", None)]
+        known.sort(key=lambda i: i.year, reverse=(sort == "year_desc"))
+        return known + unknown
+    return list(items)
 
 # cache of non-empty asset folders, split between poster files and background
 # files, per media type. Scanning this means checking every item's folder on
@@ -231,15 +285,15 @@ def _is_missing(item, missing_type):
     return False
 
 
-def get_missing_rating_keys(section, missing_type="poster", force=False):
+def get_missing_rating_keys(section, missing_type="poster", force=False, sort=DEFAULT_SORT):
     if missing_type not in MISSING_TYPES:
         missing_type = "poster"
     if _ASSET_CACHE["computed_at"] is None:
         return None  # nothing has ever been checked — caller must handle this
-    key = (str(section.key), missing_type)
+    key = (str(section.key), missing_type, sort)
     entry = _MISSING_CACHE.get(key)
     if force or not entry or entry["scanned_at"] < _ASSET_CACHE["computed_at"]:
-        items = list(section.all())
+        items = sort_items(list(section.all()), sort)
         annotate_asset_flags(items)
         entry = {
             "keys": [i.ratingKey for i in items if _is_missing(i, missing_type)],
@@ -850,9 +904,11 @@ def list_items(section_key):
         flash("Library not found.")
         return redirect(url_for("libraries"))
 
-    # full list of items
+    # full list of items, in the chosen sort order — the item page's
+    # Previous/Next use the same order (same cookie), so positions line up
+    sort = get_sort_pref()
     try:
-        all_items_full = list(section.all())
+        all_items_full = sort_items(list(section.all()), sort)
     except requests.exceptions.RequestException:
         flash("Plex a mis trop de temps à répondre (serveur occupé ou bibliothèque volumineuse). Réessaie dans un instant.")
         return redirect(url_for("libraries"))
@@ -927,7 +983,7 @@ def list_items(section_key):
 
     # pagination params (based on filtered set)
     total    = len(items_filtered)
-    per_page = 24  # 4 full rows of 6 on the grid at desktop width, no orphan row
+    per_page = get_per_page_pref()
     pages    = math.ceil(total / per_page) if total else 1
 
     # clamp page number
@@ -943,7 +999,7 @@ def list_items(section_key):
         for t in available_missing_types
     }
 
-    return render_template(
+    resp = make_response(render_template(
         "items.html",
         section=section,
         checked=checked,
@@ -951,6 +1007,9 @@ def list_items(section_key):
         page=page,
         pages=pages,
         per_page=per_page,
+        per_page_options=PER_PAGE_OPTIONS,
+        sort=sort,
+        sort_options=SORT_OPTIONS,
         alphabet=ALPHABET,
         letter=letter,
         search_query=search_query,
@@ -962,7 +1021,11 @@ def list_items(section_key):
             datetime.datetime.fromtimestamp(_ASSET_CACHE["computed_at"]).strftime("%d/%m/%Y at %H:%M")
             if checked else None
         ),
-    )
+    ))
+    # remember the choices for next time and for the item page's navigation
+    resp.set_cookie("layerr_sort", sort, max_age=PREF_COOKIE_MAX_AGE, samesite="Lax")
+    resp.set_cookie("layerr_per_page", str(per_page), max_age=PREF_COOKIE_MAX_AGE, samesite="Lax")
+    return resp
 
 
 @app.route("/refresh_assets/<section_key>")
@@ -1063,7 +1126,9 @@ def browse(section_key):
 
     if missing_type:
         try:
-            missing_keys = get_missing_rating_keys(section, missing_type=missing_type)
+            missing_keys = get_missing_rating_keys(
+                section, missing_type=missing_type, sort=get_sort_pref()
+            )
         except requests.exceptions.RequestException:
             flash("Plex a mis trop de temps à répondre (serveur occupé ou bibliothèque volumineuse). Réessaie dans un instant.")
             return redirect(url_for("libraries"))
@@ -1083,7 +1148,7 @@ def browse(section_key):
         item = plex.fetchItem(missing_keys[item_page - 1])
     else:
         try:
-            items = list(section.all())
+            items = sort_items(list(section.all()), get_sort_pref())
         except requests.exceptions.RequestException:
             flash("Plex a mis trop de temps à répondre (serveur occupé ou bibliothèque volumineuse). Réessaie dans un instant.")
             return redirect(url_for("libraries"))
@@ -1151,10 +1216,11 @@ def browse(section_key):
         plex_web_url = None
 
     # External links from the Plex guids: IMDb for everything,
-    # TVDB for shows, TMDB for movies
+    # TVDB for shows, TMDB for movies, Mediux (keyed by TMDB id) for both
     imdb_url = None
     tvdb_url = None
     tmdb_url = None
+    mediux_url = None
     try:
         for guid in item.guids:
             if guid.id.startswith("imdb://") and imdb_url is None:
@@ -1163,6 +1229,9 @@ def browse(section_key):
                 tvdb_url = f"https://thetvdb.com/dereferrer/series/{guid.id.replace('tvdb://', '')}"
             elif item.type == "movie" and guid.id.startswith("tmdb://") and tmdb_url is None:
                 tmdb_url = f"https://www.themoviedb.org/movie/{guid.id.replace('tmdb://', '')}"
+            if guid.id.startswith("tmdb://") and mediux_url is None:
+                mediux_kind = "movies" if item.type == "movie" else "shows"
+                mediux_url = f"https://mediux.pro/{mediux_kind}/{guid.id.replace('tmdb://', '')}"
     except Exception:
         pass
 
@@ -1188,6 +1257,7 @@ def browse(section_key):
         imdb_url=imdb_url,
         tvdb_url=tvdb_url,
         tmdb_url=tmdb_url,
+        mediux_url=mediux_url,
     )
 
 
