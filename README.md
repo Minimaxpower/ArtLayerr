@@ -84,11 +84,15 @@ docker compose up -d
 
 ## Usage
 
-The connection page should be filled in automatically if you completed the `.env` correctly:
+The connection page should be filled in automatically if you completed the `.env` correctly. If so, you just have to click on "connect":
 
 ![](images/connect.jpg)
 
-After that you'll access the dashboard with every library of your Plex server. To begin with, I recommend you click the update button, especially if you already have some files in the assets directory.
+If you added a password in the `.env`, you will see this page instead:
+
+![](images/password.jpg)
+
+After that you'll access the dashboard with every library of your Plex server. To begin with, I recommend you click the update button, especially if you already have some files in the assets directory (might take a bit of time since it has to scan /assets and Plex).
 Then you can click on any library you want:
 
 ![](images/libraries-dashboard.jpg)
@@ -139,13 +143,19 @@ And episode images:
 
 ![](images/episodes-posters.jpg)
 
-You can also select multiple images and compare them :
+You can also select multiple images and compare them:
 
 ![](images/compare.jpg)
 
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 
 ![](images/mediux-check.jpg)
+
+Since v2.1.0 you can now also clik in the graphs from the dashboard. It will send you now to a new page that will automatically filters what's missing for a specified library:
+
+![](images/graphs.jpg)
+
+![](images/missing.jpg)
 
 ## Credits
 
