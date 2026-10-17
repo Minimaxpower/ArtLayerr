@@ -42,6 +42,7 @@ You have to fill in the `.env` file for it to work.
          - SECRET_KEY=${SECRET_KEY}
          - APP_PASSWORD=${APP_PASSWORD:-}
          - DISABLE_UPDATE_CHECK=${DISABLE_UPDATE_CHECK:-}
+         - AUTO_REFRESH_HOURS=${AUTO_REFRESH_HOURS:-}
    ```
 
 3. Create a `.env` file next to it (you can start from [`.env.example`](.env.example)):
@@ -52,6 +53,7 @@ You have to fill in the `.env` file for it to work.
    ASSETS_DIR=/path/to/your/assets
    APP_PASSWORD=
    DISABLE_UPDATE_CHECK=
+   AUTO_REFRESH_HOURS=
    ```
 
    | Variable | Description |
@@ -62,6 +64,7 @@ You have to fill in the `.env` file for it to work.
    | `ASSETS_DIR` | Host folder where images are saved (your Kometa assets directory) |
    | `APP_PASSWORD` | *Optional.* If set, the whole app asks for this password. Leave empty to disable (default) |
    | `DISABLE_UPDATE_CHECK` | *Optional.* The "new version available" badge relies on a check against GitHub (at most one request every 6 hours). Set to `1` (or `true`) to turn it off. Empty, unset or `0` keeps it on (default) |
+   | `AUTO_REFRESH_HOURS` | *Optional.* Recompute the dashboard and re-scan the assets folder automatically every X hours (for example `6`), at most every 15 minutes. Empty or `0` = off, the **Update** buttons stay the only trigger (default). Needs `PLEX_BASE_URL` and `PLEX_TOKEN` to be set in `.env` |
 
 4. Start it:
    ```
@@ -145,6 +148,8 @@ And episode images:
 You can also select multiple images and compare them :
 
 ![](images/compare.jpg)
+
+Once a check has been run, the **Export** button (on the dashboard, and on each library's list) downloads what is missing as a CSV file (one row per item, with TMDB/TVDB/IMDB ids and the asset folder name) or as a plain text list. On a library's list it exports the whole library for the current filter; on the dashboard it exports every library.
 
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 

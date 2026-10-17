@@ -4,7 +4,17 @@
   <h2 class="mb-0">Dashboard</h2>
   <div class="d-flex align-items-center gap-3">
     {% if computed_at_display %}
-      <span class="small text-muted">Last checked: <time class="local-time" data-ts="{{ computed_at }}">{{ computed_at_display }}</time></span>
+      <span class="small text-muted">Last checked: <time class="local-time" data-ts="{{ computed_at }}">{{ computed_at_display }}</time>{% if auto_refresh_hours %} · auto-update every {{ auto_refresh_hours }} h{% endif %}</span>
+    {% endif %}
+    {% if computed_at %}
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export everything that is missing, all libraries">⬇ Export</button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><h6 class="dropdown-header">Everything missing, all libraries</h6></li>
+          <li><a class="dropdown-item" href="{{ url_for('export_missing', format='csv') }}">CSV (spreadsheet)</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('export_missing', format='txt') }}">Text list</a></li>
+        </ul>
+      </div>
     {% endif %}
     <a href="{{ url_for('libraries', refresh=1) }}" class="btn btn-sm btn-outline-primary">🔄 Update</a>
   </div>

@@ -6,7 +6,9 @@ import datetime
 import json
 import re
 import unicodedata
+import csv
 import hmac
+import io
 import threading
 import secrets
 from collections import OrderedDict
@@ -259,7 +261,8 @@ def sort_items(items, sort):
 # cache of non-empty asset folders, split between poster files and background
 # files, per media type. Scanning this means checking every item's folder on
 # disk, which is the expensive part of this app — unlike before, this is now
-# PURELY MANUAL: it is never recomputed automatically on a page view or after
+# MANUAL by default (AUTO_REFRESH_HOURS adds an optional timer): it is never
+# recomputed automatically on a page view or after
 # a timeout. It is only (re)computed when the "🔄 Update" button
 # is used, or right after a download (a single, cheap, known-fresh update).
 # computed_at stays None until the first manual check ever happens.
@@ -356,12 +359,13 @@ def get_asset_folders(asset_root, force=False):
     return _ASSET_CACHE
 
 
-def annotate_asset_flags(items):
+def annotate_asset_flags(items, asset_dir=None):
     """Set item.has_poster / item.has_background (and, for shows, custom
     season/episode info) for each item, from the cached scan. If no manual
     check has ever been run yet, everything is set to None (meaning "unknown
     / not checked"), never guessed as False."""
-    asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+    # asset_dir is only passed by the background refresh (no request, no session)
+    asset_root = os.path.join(os.getcwd(), asset_dir or session.get("asset_dir", "assets"))
     cache = get_asset_folders(asset_root)  # force=False: just reads, never scans
     checked = cache["computed_at"] is not None
     for item in items:
@@ -563,7 +567,7 @@ def load_state():
         pass  # missing or unreadable file: just start empty, as before
 
 
-def compute_dashboard_stats(plex):
+def compute_dashboard_stats(plex, asset_dir=None):
     sections = sorted(plex.library.sections(), key=lambda s: sort_key(s.title))
     library_stats = []
     totals = {
@@ -583,7 +587,7 @@ def compute_dashboard_stats(plex):
             items = list(section.all())
         except requests.exceptions.RequestException:
             continue
-        annotate_asset_flags(items)
+        annotate_asset_flags(items, asset_dir)
         total = len(items)
         poster_done = sum(1 for i in items if i.has_poster)
         bg_done = sum(1 for i in items if i.has_background)
@@ -631,6 +635,78 @@ def compute_dashboard_stats(plex):
 
     library_stats.sort(key=lambda lib: (lib["type"], sort_key(lib["title"])))
     return {"library_stats": library_stats, "totals": totals}
+
+
+# ---- shared refresh + optional automatic refresh ---------------------------
+_REFRESH_LOCK = threading.Lock()
+
+
+def run_full_refresh(plex, asset_dir=None):
+    """Rescan the asset folders on disk, then recompute the dashboard numbers.
+    Used by the "Update" button and by the optional automatic refresh. Outside
+    a request (background thread) the asset directory must be passed in."""
+    asset_dir = asset_dir or session.get("asset_dir", "assets")
+    with _REFRESH_LOCK:
+        get_asset_folders(os.path.join(os.getcwd(), asset_dir), force=True)
+        _DASHBOARD_CACHE["data"] = compute_dashboard_stats(plex, asset_dir)
+        _DASHBOARD_CACHE["computed_at"] = time.time()
+        save_state()
+
+
+# AUTO_REFRESH_HOURS=6 recomputes everything every 6 hours, in the background.
+# Empty / 0 = off (default). It needs PLEX_BASE_URL and PLEX_TOKEN in the
+# environment (a background job has no browser session to borrow them from),
+# and it never runs more often than every 15 minutes. The "Update" buttons keep
+# working exactly as before; a manual update also postpones the next automatic one.
+def _parse_hours(raw):
+    try:
+        hours = float((raw or "").strip().replace(",", "."))
+    except ValueError:
+        return 0.0
+    return hours if hours > 0 else 0.0
+
+
+AUTO_REFRESH_HOURS = _parse_hours(os.environ.get("AUTO_REFRESH_HOURS"))
+AUTO_REFRESH_SECONDS = max(AUTO_REFRESH_HOURS * 3600, 15 * 60) if AUTO_REFRESH_HOURS else 0
+_AUTO = {"active": False}
+
+
+def _auto_refresh_tick(base_url, token, asset_dir, interval):
+    """One scheduling step; returns the number of seconds to sleep afterwards."""
+    wait = (_DASHBOARD_CACHE["computed_at"] or 0) + interval - time.time()
+    if wait > 0:
+        return min(wait, 60)  # not due yet (re-checked every minute at most)
+    try:
+        run_full_refresh(PlexServer(base_url, token, timeout=120), asset_dir)
+    except Exception as e:
+        print(f"[auto-refresh] failed, retrying in 15 minutes: {e}", flush=True)
+        return 15 * 60
+    return 60
+
+
+def _auto_refresh_loop(base_url, token, asset_dir, interval):
+    time.sleep(30)  # let Plex and the rest of the stack come up after a restart
+    while True:
+        time.sleep(_auto_refresh_tick(base_url, token, asset_dir, interval))
+
+
+def start_auto_refresh():
+    if not AUTO_REFRESH_SECONDS:
+        return
+    base_url = os.environ.get("PLEX_BASE_URL", "")
+    token = os.environ.get("PLEX_TOKEN", "")
+    if not (base_url and token):
+        print("[auto-refresh] AUTO_REFRESH_HOURS is set but PLEX_BASE_URL / PLEX_TOKEN are not: "
+              "automatic refresh is off.", flush=True)
+        return
+    asset_dir = os.environ.get("PLEX_ASSET_DIR", "assets")
+    _AUTO["active"] = True
+    threading.Thread(
+        target=_auto_refresh_loop,
+        args=(base_url, token, asset_dir, AUTO_REFRESH_SECONDS),
+        daemon=True,
+        name="auto-refresh",
+    ).start()
 
 
 MEDIUX_TVDB_RE = re.compile(r"^\s{2}(\d+):\s*#\s*TVDB id for (.+?)\.\s*Set by", re.MULTILINE)
@@ -949,10 +1025,7 @@ def libraries():
         return redirect(url_for("connect"))
 
     if _DASHBOARD_CACHE["data"] is None or request.args.get("refresh") == "1":
-        refresh_asset_check(plex)
-        _DASHBOARD_CACHE["data"] = compute_dashboard_stats(plex)
-        _DASHBOARD_CACHE["computed_at"] = time.time()
-        save_state()
+        run_full_refresh(plex)
 
     computed_at_display = None
     if _DASHBOARD_CACHE["computed_at"]:
@@ -966,6 +1039,7 @@ def libraries():
         totals=_DASHBOARD_CACHE["data"]["totals"],
         computed_at=_DASHBOARD_CACHE["computed_at"],
         computed_at_display=computed_at_display,
+        auto_refresh_hours=("%g" % (AUTO_REFRESH_SECONDS / 3600)) if _AUTO["active"] else None,
     )
 
 
@@ -1017,6 +1091,161 @@ def missing_overview(missing_type):
         missing_type=missing_type,
         unit=MISSING_UNITS[missing_type],
     )
+
+
+# ---- export of what is missing (CSV / text) ---------------------------------
+EXPORT_TYPES = {
+    "movie": ["poster", "background"],
+    "show": ["poster", "background", "season", "episode"],
+}
+EXPORT_MISSING_NAMES = {
+    "poster": "poster",
+    "background": "background",
+    "season": "seasons",
+    "episode": "episodes",
+}
+EXPORT_COLUMNS = [
+    "Library", "Title", "Year", "Type", "Missing", "Poster", "Background",
+    "Seasons", "Episodes", "TMDB", "TVDB", "IMDB", "Plex key", "Asset folder",
+]
+
+
+def _csv_cell(value):
+    """Plain text for a spreadsheet cell; a leading = + - @ would be read as a
+    formula by Excel/LibreOffice, so it is neutralised."""
+    text = "" if value is None else str(value)
+    if text[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        text = "'" + text
+    return text
+
+
+def _item_external_ids(item):
+    ids = {}
+    try:
+        for guid in item.guids:
+            kind, _, value = (guid.id or "").partition("://")
+            if kind in ("tmdb", "tvdb", "imdb") and value:
+                ids[kind] = value
+    except Exception:
+        pass
+    return ids
+
+
+def _asset_folder_name(item):
+    try:
+        if item.type == "movie":
+            return os.path.basename(os.path.dirname(item.media[0].parts[0].file))
+        return os.path.basename(item.locations[0])
+    except Exception:
+        return ""
+
+
+def collect_missing_rows(section, missing_type=""):
+    """One row per item of this library that lacks something. With
+    missing_type, only the items lacking that one thing. Needs a check to have
+    been run (annotate_asset_flags reads the last check)."""
+    kinds = EXPORT_TYPES[section.type]
+    if missing_type and missing_type not in kinds:
+        return []
+    items = sort_items(list(section.all()), "title")
+    annotate_asset_flags(items)
+    rows = []
+    for item in items:
+        missing = [t for t in kinds if _is_missing(item, t)]
+        if not missing or (missing_type and missing_type not in missing):
+            continue
+        ids = _item_external_ids(item)
+        is_show = section.type == "show"
+        rows.append({
+            "Library": section.title,
+            "Title": item.title,
+            "Year": getattr(item, "year", "") or "",
+            "Type": section.type,
+            "Missing": "; ".join(EXPORT_MISSING_NAMES[t] for t in missing),
+            "Poster": "yes" if item.has_poster else "no",
+            "Background": "yes" if item.has_background else "no",
+            "Seasons": f"{len(item.custom_seasons)}/{getattr(item, 'childCount', 0) or 0}" if is_show else "",
+            "Episodes": f"{item.custom_episode_count}/{getattr(item, 'leafCount', 0) or 0}" if is_show else "",
+            "TMDB": ids.get("tmdb", ""),
+            "TVDB": ids.get("tvdb", ""),
+            "IMDB": ids.get("imdb", ""),
+            "Plex key": item.ratingKey,
+            "Asset folder": _asset_folder_name(item),
+        })
+    return rows
+
+
+def _rows_to_csv(rows):
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(EXPORT_COLUMNS)
+    for row in rows:
+        writer.writerow([_csv_cell(row[c]) for c in EXPORT_COLUMNS])
+    return "\ufeff" + buf.getvalue()  # BOM: Excel then reads the accents correctly
+
+
+def _rows_to_text(rows):
+    lines = []
+    libraries = []
+    for row in rows:
+        if row["Library"] not in libraries:
+            libraries.append(row["Library"])
+    for lib in libraries:
+        if len(libraries) > 1:
+            lines += ([""] if lines else []) + [f"# {lib}"]
+        for row in rows:
+            if row["Library"] != lib:
+                continue
+            year = f" ({row['Year']})" if row["Year"] else ""
+            lines.append(f"{row['Title']}{year} \u2014 {row['Missing']}")
+    return "\n".join(lines) + "\n"
+
+
+@app.route("/export")
+def export_missing():
+    plex = get_plex()
+    if not plex:
+        return redirect(url_for("connect"))
+
+    section_key = request.args.get("section_key", "")
+    missing_type = request.args.get("missing_type", "")
+    if missing_type not in MISSING_TYPES:
+        missing_type = ""
+    fmt = "txt" if request.args.get("format") == "txt" else "csv"
+    if section_key:
+        back = url_for("list_items", section_key=section_key, missing_type=missing_type or None)
+    else:
+        back = url_for("libraries")
+
+    if _ASSET_CACHE["computed_at"] is None:
+        flash("Run a check first (\U0001F504 Update) before exporting.")
+        return redirect(back)
+
+    try:
+        sections = [s for s in plex.library.sections() if s.type in EXPORT_TYPES]
+        sections.sort(key=lambda s: (s.type, sort_key(s.title)))
+        if section_key:
+            sections = [s for s in sections if str(s.key) == section_key]
+            if not sections:
+                flash("Library not found.")
+                return redirect(url_for("libraries"))
+        rows = []
+        for s in sections:
+            rows += collect_missing_rows(s, missing_type)
+    except requests.exceptions.RequestException:
+        flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
+        return redirect(back)
+
+    if not rows:
+        flash("Nothing missing \u2014 nothing to export.")
+        return redirect(back)
+
+    scope = re.sub(r"[^A-Za-z0-9]+", "-", sections[0].title).strip("-").lower() if section_key else "all"
+    name = f"artlayerr-missing-{scope or 'library'}-{datetime.date.today().isoformat()}.{fmt}"
+    body = _rows_to_csv(rows) if fmt == "csv" else _rows_to_text(rows)
+    resp = Response(body, mimetype="text/csv" if fmt == "csv" else "text/plain")
+    resp.headers["Content-Disposition"] = f'attachment; filename="{name}"'
+    return resp
 
 
 @app.route("/mediux_check", methods=["GET", "POST"])
@@ -1803,6 +2032,7 @@ def upload_file():
 
 # restore the last saved verification/dashboard state (see "persistence" above)
 load_state()
+start_auto_refresh()
 
 
 if __name__ == "__main__":

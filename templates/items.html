@@ -75,6 +75,16 @@
       {% if last_check_display %}
         <span class="small text-muted me-2">Last checked: <time class="local-time" data-ts="{{ last_check_ts }}">{{ last_check_display }}</time></span>
       {% endif %}
+      {% if checked %}
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export what is missing in this library">⬇ Export</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'season': 'season posters', 'episode': 'episode images'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
+            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='csv') }}">CSV (spreadsheet)</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='txt') }}">Text list</a></li>
+          </ul>
+        </div>
+      {% endif %}
       <a href="{{ url_for('refresh_assets', section_key=section.key, page=page, letter=letter, q=search_query if search_query else none, missing_type=missing_type if missing_type else none) }}"
          class="btn btn-sm btn-outline-secondary">
         🔄 Update
