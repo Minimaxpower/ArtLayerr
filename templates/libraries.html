@@ -87,7 +87,7 @@
   <div class="col-lg-3">
     <div class="row row-cols-2 g-2">
       <div class="col">
-        <div class="card h-100 p-3 text-center">
+        <a href="{{ url_for('missing_overview', missing_type='poster') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
           <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Posters</div>
           {% set poster_pct = ((totals.poster_done / totals.poster_total * 100) | round(0) | int) if totals.poster_total else 0 %}
           <div class="stat-ring mx-auto" style="--pct: {{ poster_pct }}; width: 90px; height: 90px;">
@@ -100,11 +100,11 @@
             <div class="col"><div class="fw-bold small">{{ totals.poster_total - totals.poster_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
             <div class="col"><div class="fw-bold small">{{ totals.poster_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
           </div>
-        </div>
+        </a>
       </div>
 
       <div class="col">
-        <div class="card h-100 p-3 text-center">
+        <a href="{{ url_for('missing_overview', missing_type='season') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
           <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Posters de saison</div>
           {% set season_pct = ((totals.season_done / totals.season_total * 100) | round(0) | int) if totals.season_total else 0 %}
           <div class="stat-ring mx-auto" style="--pct: {{ season_pct }}; --ring-color: #8e6ff0; width: 90px; height: 90px;">
@@ -117,11 +117,11 @@
             <div class="col"><div class="fw-bold small">{{ totals.season_total - totals.season_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
             <div class="col"><div class="fw-bold small">{{ totals.season_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
           </div>
-        </div>
+        </a>
       </div>
 
       <div class="col">
-        <div class="card h-100 p-3 text-center">
+        <a href="{{ url_for('missing_overview', missing_type='background') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
           <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Backgrounds</div>
           {% set bg_pct = ((totals.bg_done / totals.bg_total * 100) | round(0) | int) if totals.bg_total else 0 %}
           <div class="stat-ring mx-auto" style="--pct: {{ bg_pct }}; --ring-color: #3aa0c4; width: 90px; height: 90px;">
@@ -134,11 +134,11 @@
             <div class="col"><div class="fw-bold small">{{ totals.bg_total - totals.bg_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
             <div class="col"><div class="fw-bold small">{{ totals.bg_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
           </div>
-        </div>
+        </a>
       </div>
 
       <div class="col">
-        <div class="card h-100 p-3 text-center">
+        <a href="{{ url_for('missing_overview', missing_type='episode') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
           <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Episode images</div>
           {% set episode_pct = ((totals.episode_done / totals.episode_total * 100) | round(0) | int) if totals.episode_total else 0 %}
           <div class="stat-ring mx-auto" style="--pct: {{ episode_pct }}; --ring-color: #e85d9e; width: 90px; height: 90px;">
@@ -151,7 +151,7 @@
             <div class="col"><div class="fw-bold small">{{ totals.episode_total - totals.episode_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
             <div class="col"><div class="fw-bold small">{{ totals.episode_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
           </div>
-        </div>
+        </a>
       </div>
     </div>
   </div>

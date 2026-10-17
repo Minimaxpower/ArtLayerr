@@ -6,6 +6,7 @@ import datetime
 import json
 import re
 import unicodedata
+import hmac
 from concurrent.futures import ThreadPoolExecutor
 import requests
 
@@ -32,6 +33,89 @@ APP_VERSION = os.environ.get("APP_VERSION", "dev")
 @app.context_processor
 def inject_version():
     return {"app_version": APP_VERSION}
+
+
+# ---- optional password protection ------------------------------------------
+# Set APP_PASSWORD to put the whole app behind a login page (useful if it is
+# reachable from the Internet). Left empty/unset, nothing changes: no login.
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
+
+# very small brute-force guard: after LOGIN_MAX_FAILURES wrong passwords from
+# one address, further attempts are refused for LOGIN_WINDOW seconds
+LOGIN_MAX_FAILURES = 5
+LOGIN_WINDOW = 300
+_LOGIN_FAILURES = {}
+
+
+def _recent_failures(ip):
+    now = time.time()
+    recent = [t for t in _LOGIN_FAILURES.get(ip, []) if now - t < LOGIN_WINDOW]
+    if recent:
+        _LOGIN_FAILURES[ip] = recent
+    else:
+        _LOGIN_FAILURES.pop(ip, None)
+    return recent
+
+
+def _safe_next(target):
+    """Only follow local paths after login (no open redirect)."""
+    if target and target.startswith("/") and not target.startswith("//") and "\\" not in target:
+        return target
+    return url_for("libraries")
+
+
+@app.context_processor
+def inject_auth():
+    return {"auth_enabled": bool(APP_PASSWORD)}
+
+
+@app.before_request
+def require_password():
+    if not APP_PASSWORD:
+        return None
+    if request.endpoint in ("login", "static"):
+        return None
+    if session.get("authenticated"):
+        return None
+    target = None
+    if request.method == "GET":
+        target = request.path
+        if request.query_string:
+            target += "?" + request.query_string.decode("utf-8", "replace")
+    return redirect(url_for("login", next=target))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not APP_PASSWORD:
+        return redirect(url_for("connect"))
+    next_url = _safe_next(request.values.get("next"))
+    error = None
+    if request.method == "POST":
+        ip = request.remote_addr or "?"
+        if len(_recent_failures(ip)) >= LOGIN_MAX_FAILURES:
+            error = "Too many attempts. Try again in a few minutes."
+        else:
+            supplied = request.form.get("password", "")
+            if hmac.compare_digest(supplied.encode("utf-8"), APP_PASSWORD.encode("utf-8")):
+                _LOGIN_FAILURES.pop(ip, None)
+                session.clear()
+                session["authenticated"] = True
+                return redirect(next_url)
+            _LOGIN_FAILURES.setdefault(ip, []).append(time.time())
+            error = "Wrong password."
+    return render_template("login.html", error=error, next_url=next_url)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login") if APP_PASSWORD else url_for("connect"))
 
 
 # module‑level alphabet list so we only build it once
@@ -278,10 +362,12 @@ def _is_missing(item, missing_type):
         return not item.has_poster
     if missing_type == "background":
         return not item.has_background
+    # "missing" = not every season / episode has a custom file yet (this is
+    # what the dashboard rings count too, so a ring click lists the same shows)
     if missing_type == "season":
-        return not item.custom_seasons
+        return not item.seasons_complete
     if missing_type == "episode":
-        return not item.custom_episode_count
+        return not item.episodes_complete
     return False
 
 
@@ -659,18 +745,33 @@ def get_plex():
 
 @app.route("/", methods=["GET", "POST"])
 def connect():
-    if request.method == "POST":
-        session["base_url"] = request.form["base_url"]
-        session["token"] = request.form["token"]
-        session["asset_dir"] = (
-            "assets" if not request.form["asset_dir"] else request.form["asset_dir"]
-        )
-        return redirect(url_for("libraries"))
-
     # optional defaults from environment variables (set in docker-compose.yml)
     env_base_url = os.environ.get("PLEX_BASE_URL", "")
     env_token = os.environ.get("PLEX_TOKEN", "")
     env_asset_dir = os.environ.get("PLEX_ASSET_DIR", "assets")
+
+    if request.method == "POST":
+        base_url = request.form["base_url"].strip()
+        token = request.form.get("token", "").strip()
+        # The configured token is never written into the page. A blank field
+        # means "use the configured one" -- but only for the configured URL, so
+        # the token can't be sent to a server the visitor typed in.
+        if not token and env_token and base_url.rstrip("/") == env_base_url.rstrip("/"):
+            token = env_token
+        if not token:
+            return render_template(
+                "connect.html",
+                default_base_url=base_url,
+                token_preset=bool(env_token),
+                default_asset_dir=request.form.get("asset_dir", "") or env_asset_dir,
+                error="A Plex token is required for this URL.",
+            )
+        session["base_url"] = base_url
+        session["token"] = token
+        session["asset_dir"] = (
+            "assets" if not request.form["asset_dir"] else request.form["asset_dir"]
+        )
+        return redirect(url_for("libraries"))
 
     # if both URL and token are provided via env, skip the form entirely
     if env_base_url and env_token and not session.get("base_url"):
@@ -682,8 +783,9 @@ def connect():
     return render_template(
         "connect.html",
         default_base_url=env_base_url,
-        default_token=env_token,
+        token_preset=bool(env_token),
         default_asset_dir=env_asset_dir,
+        error=None,
     )
 
 
@@ -711,6 +813,56 @@ def libraries():
         totals=_DASHBOARD_CACHE["data"]["totals"],
         computed_at=_DASHBOARD_CACHE["computed_at"],
         computed_at_display=computed_at_display,
+    )
+
+
+# which dashboard numbers back each ring: (done key, total key) in library_stats
+MISSING_RING_FIELDS = {
+    "poster": ("poster_done", "total"),
+    "background": ("bg_done", "total"),
+    "season": ("season_done", "season_total"),
+    "episode": ("episode_done", "episode_total"),
+}
+MISSING_UNITS = {
+    "poster": "posters",
+    "background": "backgrounds",
+    "season": "season posters",
+    "episode": "episode images",
+}
+
+
+@app.route("/missing/<missing_type>")
+def missing_overview(missing_type):
+    """Target of a dashboard ring click. One library concerned: jump straight to
+    its filtered list. Several: let the user pick which one."""
+    plex = get_plex()
+    if not plex:
+        return redirect(url_for("connect"))
+    if missing_type not in MISSING_RING_FIELDS:
+        return redirect(url_for("libraries"))
+    data = _DASHBOARD_CACHE["data"]
+    if data is None:
+        return redirect(url_for("libraries"))
+
+    done_key, total_key = MISSING_RING_FIELDS[missing_type]
+    libs = []
+    for lib in data["library_stats"]:
+        done, total = lib.get(done_key), lib.get(total_key)
+        if done is None or total is None:
+            continue  # e.g. season/episode figures don't exist for movie libraries
+        if total - done > 0:
+            libs.append({**lib, "missing": total - done, "of": total})
+
+    if not libs:
+        flash("Nothing missing here — everything is covered.")
+        return redirect(url_for("libraries"))
+    if len(libs) == 1:
+        return redirect(url_for("list_items", section_key=libs[0]["key"], missing_type=missing_type))
+    return render_template(
+        "missing_overview.html",
+        libs=libs,
+        missing_type=missing_type,
+        unit=MISSING_UNITS[missing_type],
     )
 
 

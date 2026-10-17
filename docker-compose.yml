@@ -13,3 +13,4 @@ services:
       - PLEX_TOKEN=${PLEX_TOKEN}
       - PLEX_ASSET_DIR=/assets
       - SECRET_KEY=${SECRET_KEY}
+      - APP_PASSWORD=${APP_PASSWORD:-}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Missing {{ unit }}</h2>
+  <a href="{{ url_for('libraries') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+</div>
+<p class="text-muted">Pick a library to see what is missing:</p>
+<div class="row g-3">
+  {% for lib in libs %}
+    <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('list_items', section_key=lib.key, missing_type=missing_type) }}" class="text-decoration-none text-body d-block">
+        <div class="card p-3 library-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>{{ lib.title }}</strong>
+            <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
+          </div>
+          <div class="small text-muted">{{ lib.missing }} missing out of {{ lib.of }} {{ unit }}</div>
+        </div>
+      </a>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

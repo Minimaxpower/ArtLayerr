@@ -1,14 +1,21 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Connect to Plex</h2>
-<form method="post">
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+<form method="post" autocomplete="off">
   <div class="mb-3">
     <label class="form-label">Base URL</label>
     <input type="text" name="base_url" class="form-control" placeholder="http://localhost:32400" value="{{ default_base_url }}" required>
   </div>
   <div class="mb-3">
     <label class="form-label">Token</label>
-    <input type="text" name="token" class="form-control" placeholder="YOUR_PLEX_TOKEN" value="{{ default_token }}" required>
+    {# the configured token is never written into the page: leave blank to use it #}
+    <input type="password" name="token" class="form-control" autocomplete="new-password"
+           placeholder="{{ '••••••••••••••••' if token_preset else 'YOUR_PLEX_TOKEN' }}"
+           {% if not token_preset %}required{% endif %}>
+    {% if token_preset %}
+      <div class="form-text">A token is already configured on the server. Leave this blank to use it (works for the configured URL only).</div>
+    {% endif %}
   </div>
   <div class="mb-3">
     <label class="form-label">Base Image Asset directory</label>

@@ -40,6 +40,7 @@ You have to fill in the `.env` file for it to work.
          - PLEX_TOKEN=${PLEX_TOKEN}
          - PLEX_ASSET_DIR=/assets
          - SECRET_KEY=${SECRET_KEY}
+         - APP_PASSWORD=${APP_PASSWORD:-}
    ```
 
 3. Create a `.env` file next to it (you can start from [`.env.example`](.env.example)):
@@ -48,6 +49,7 @@ You have to fill in the `.env` file for it to work.
    PLEX_TOKEN=YOUR_PLEX_TOKEN
    SECRET_KEY=RANDOM_SECRET_KEY_OF_YOUR_CHOICE
    ASSETS_DIR=/path/to/your/assets
+   APP_PASSWORD=
    ```
 
    | Variable | Description |
@@ -56,6 +58,7 @@ You have to fill in the `.env` file for it to work.
    | `PLEX_TOKEN` | Your Plex authentication token |
    | `SECRET_KEY` | Any long random string (generate one with `openssl rand -base64 32`) |
    | `ASSETS_DIR` | Host folder where images are saved (your Kometa assets directory) |
+   | `APP_PASSWORD` | *Optional.* If set, the whole app asks for this password. Leave empty to disable (default) |
 
 4. Start it:
    ```
@@ -63,6 +66,8 @@ You have to fill in the `.env` file for it to work.
    ```
 
 5. Open `http://YOUR_SERVER_IP:3535`.
+
+> **Exposing ArtLayerr on the Internet?** Set `APP_PASSWORD`, use a long random `SECRET_KEY` (the session cookie is signed with it) and put the app behind an HTTPS reverse proxy, otherwise the password travels in clear text.
 
 To update to a newer version:
 

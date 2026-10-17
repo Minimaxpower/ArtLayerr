@@ -210,8 +210,9 @@
           <span>ArtLayerr</span>
         </a>
         <a href="https://github.com/Minimaxpower/ArtLayerr/releases" target="_blank" rel="noopener" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary-emphasis fw-normal text-decoration-none me-1" title="ArtLayerr {{ app_version }}">{{ app_version.split("-")[0] }}</a>
-        <a href="{{ url_for('mediux_check') }}" class="btn btn-outline-secondary btn-sm ms-3">Mediux Check</a>
+        {% if request.endpoint != 'login' %}<a href="{{ url_for('mediux_check') }}" class="btn btn-outline-secondary btn-sm ms-3">Mediux Check</a>{% endif %}
         <button id="theme-toggle" type="button" class="btn btn-outline-secondary btn-sm ms-auto">🌙</button>
+        {% if auth_enabled and session.get('authenticated') %}<a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm ms-2">Log out</a>{% endif %}
       </div>
     </nav>
     <div class="container">
