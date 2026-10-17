@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 
 {% block content %}
+  {# ——— Status chip: P poster, B background, S season posters, E episode images ——— #}
+  <style>
+    .status-chip { font-size: .68rem; line-height: 1.15rem; padding: 0 .45rem; font-weight: 600; letter-spacing: 0; }
+  </style>
+  {% macro chip(label, state, tip) %}
+    <span class="badge rounded-pill status-chip {{ {'ok': 'bg-success', 'part': 'bg-info text-dark', 'no': 'bg-secondary', 'unk': 'bg-light text-dark'}[state] }}" title="{{ tip }}">{{ label }}</span>
+  {% endmacro %}
+
   {# ——— Reusable pagination (compact at the top, full at the bottom) ——— #}
   {% macro pager(window=7, small=false, prev_label='Previous', next_label='Next') %}
     <nav aria-label="Page navigation"{% if small %} class="ms-auto"{% endif %}>
@@ -153,35 +161,37 @@
                              missing_type=missing_type if missing_type else none) }}"
            class="text-decoration-none">
           <div class="card poster-card h-100 position-relative">
-            <div class="position-absolute d-flex flex-column gap-1" style="z-index: 2; top: 8px; right: 8px;">
-              {% if item.has_poster is none %}
-                <span class="badge bg-light text-dark">? Poster</span>
-              {% elif item.has_poster %}
-                <span class="badge bg-success">✓ Poster</span>
-              {% else %}
-                <span class="badge bg-secondary">— Poster</span>
-              {% endif %}
-              {% if item.has_background is none %}
-                <span class="badge bg-light text-dark">? Background</span>
-              {% elif item.has_background %}
-                <span class="badge bg-success">✓ Background</span>
-              {% else %}
-                <span class="badge bg-secondary">— Background</span>
-              {% endif %}
+            <div class="position-absolute d-flex flex-wrap justify-content-end gap-1" style="z-index: 2; top: 8px; right: 8px; max-width: 68%;">
+              {{ chip('P', 'unk' if item.has_poster is none else ('ok' if item.has_poster else 'no'),
+                      'Poster' ~ (': not checked yet' if item.has_poster is none else (': present' if item.has_poster else ': missing'))) }}
+              {{ chip('B', 'unk' if item.has_background is none else ('ok' if item.has_background else 'no'),
+                      'Background' ~ (': not checked yet' if item.has_background is none else (': present' if item.has_background else ': missing'))) }}
               {% if section.type == 'show' %}
+                {% set s_total = item.childCount or 0 %}
+                {% set e_total = item.leafCount or 0 %}
                 {% if item.custom_seasons is none %}
-                  <span class="badge bg-light text-dark">? Seasons</span>
-                {% elif item.custom_seasons_display %}
-                  <span class="badge {{ 'bg-success' if item.seasons_complete else 'bg-info text-dark' }}">{{ item.custom_seasons_display }}</span>
+                  {{ chip('S', 'unk', 'Season posters: not checked yet') }}
                 {% else %}
-                  <span class="badge bg-secondary">— Seasons</span>
+                  {% set s_done = item.custom_seasons|length %}
+                  {% if s_done == 0 %}
+                    {{ chip('S', 'no', 'Season posters: none' ~ (' (of ' ~ s_total ~ ')' if s_total else '')) }}
+                  {% elif item.seasons_complete or not s_total %}
+                    {{ chip('S' ~ s_done, 'ok' if item.seasons_complete else 'part', 'Season posters: ' ~ s_done ~ (' of ' ~ s_total if s_total else '')) }}
+                  {% else %}
+                    {{ chip('S ' ~ s_done ~ '/' ~ s_total, 'part', 'Season posters: ' ~ s_done ~ ' of ' ~ s_total) }}
+                  {% endif %}
                 {% endif %}
                 {% if item.custom_episode_count is none %}
-                  <span class="badge bg-light text-dark">? Episodes</span>
-                {% elif item.custom_episode_count > 0 %}
-                  <span class="badge {{ 'bg-success' if item.episodes_complete else 'bg-info text-dark' }}">{{ item.custom_episode_count }} episodes</span>
+                  {{ chip('E', 'unk', 'Episode images: not checked yet') }}
                 {% else %}
-                  <span class="badge bg-secondary">— Episodes</span>
+                  {% set e_done = item.custom_episode_count %}
+                  {% if e_done == 0 %}
+                    {{ chip('E', 'no', 'Episode images: none' ~ (' (of ' ~ e_total ~ ')' if e_total else '')) }}
+                  {% elif item.episodes_complete or not e_total %}
+                    {{ chip('E' ~ e_done, 'ok' if item.episodes_complete else 'part', 'Episode images: ' ~ e_done ~ (' of ' ~ e_total if e_total else '')) }}
+                  {% else %}
+                    {{ chip('E ' ~ e_done ~ '/' ~ e_total, 'part', 'Episode images: ' ~ e_done ~ ' of ' ~ e_total) }}
+                  {% endif %}
                 {% endif %}
               {% endif %}
             </div>
