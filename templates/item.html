@@ -368,10 +368,18 @@ function updateCompareButton() {
   document.getElementById('compareButton').style.display = list.length >= 2 ? 'inline-block' : 'none';
 }
 
-function initCompareCheckboxes() {
+// Tick the boxes (and show the Compare button) according to the saved selection.
+function syncCompareCheckboxes() {
   const list = loadCompareSelection();
   document.querySelectorAll('.compare-checkbox').forEach(function (cb) {
     cb.checked = list.some(function (entry) { return entry.img_key === cb.dataset.imgKey; });
+  });
+  updateCompareButton();
+}
+
+function initCompareCheckboxes() {
+  syncCompareCheckboxes();
+  document.querySelectorAll('.compare-checkbox').forEach(function (cb) {
     cb.addEventListener('change', function () {
       let current = loadCompareSelection();
       if (cb.checked) {
@@ -420,6 +428,23 @@ function openCompareModal() {
   });
   new bootstrap.Modal(document.getElementById('compareModal')).show();
 }
+
+// Choosing an image (the grid's Download button, or "Choose this poster" in the
+// comparison window) ends the comparison: forget the selection so the next one
+// starts empty. Uploading from a URL or a file leaves it alone. The listener is
+// on the document so the forms built by openCompareModal() are covered too.
+document.addEventListener('submit', function (event) {
+  const form = event.target;
+  if (form && form.getAttribute && form.getAttribute('action') === "{{ url_for('download') }}") {
+    localStorage.removeItem(COMPARE_KEY);
+  }
+});
+
+// Coming back with the browser's Back button can restore the page from its cache,
+// with the old ticks: re-read the selection in that case.
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) { syncCompareCheckboxes(); }
+});
 
 document.addEventListener('DOMContentLoaded', initCompareCheckboxes);
 </script>

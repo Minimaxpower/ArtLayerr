@@ -263,7 +263,7 @@ SORT_OPTIONS = {
     "year_asc": "Year (oldest)",
 }
 DEFAULT_SORT = "title"
-PER_PAGE_OPTIONS = [12, 24, 48, 96, 192]  # all multiples of 6: no orphan row on the desktop grid
+PER_PAGE_OPTIONS = [12, 24, 48, 96]  # all multiples of 6: no orphan row on the desktop grid
 DEFAULT_PER_PAGE = 12
 PREF_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
@@ -502,6 +502,11 @@ def annotate_asset_flags(items, asset_dir=None):
 # check (i.e. right after the button is used, or after a download), never on
 # a timer.
 _MISSING_CACHE = {}
+# The cached key list is only valid while the Plex library has not changed. A new
+# or removed title does not touch the asset scan, so a time limit bounds how long
+# a stale list can survive (the item page also rebuilds it when it spots a title
+# the list does not know, see browse()).
+_MISSING_CACHE_TTL = 300  # seconds
 
 # which attribute each filter type checks, and whether it's show-only
 MISSING_TYPES = {
@@ -548,7 +553,12 @@ def get_missing_rating_keys(section, missing_type="poster", force=False, sort=DE
         return None  # nothing has ever been checked — caller must handle this
     key = (str(section.key), missing_type, sort)
     entry = _MISSING_CACHE.get(key)
-    if force or not entry or entry["scanned_at"] < _ASSET_CACHE["computed_at"]:
+    if (
+        force
+        or not entry
+        or entry["scanned_at"] < _ASSET_CACHE["computed_at"]
+        or time.time() - entry["scanned_at"] > _MISSING_CACHE_TTL
+    ):
         items = sort_items(list(section.all()), sort)
         annotate_asset_flags(items)
         entry = {
@@ -1825,11 +1835,22 @@ def browse(section_key):
     if missing_type not in available_missing_types:
         missing_type = ""
 
+    # The grid links carry the clicked item's ratingKey (rk) next to its position
+    # (page). The position is only a hint: it counts positions in a list that was
+    # built earlier, and a title added to or removed from Plex since then shifts
+    # every position after it. rk always wins.
+    wanted = request.args.get("rk", type=int)
+
     if missing_type:
         try:
             missing_keys = get_missing_rating_keys(
                 section, missing_type=missing_type, sort=get_sort_pref()
             )
+            if missing_keys and wanted is not None and wanted not in missing_keys:
+                # the cached list predates a change in the library: rebuild it once
+                missing_keys = get_missing_rating_keys(
+                    section, missing_type=missing_type, sort=get_sort_pref(), force=True
+                )
         except requests.exceptions.RequestException:
             flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
             return redirect(url_for("libraries"))
@@ -1846,7 +1867,16 @@ def browse(section_key):
         item_page = int(request.args.get("page", 1))
         item_letter = request.args.get("letter", "All")
         item_page = max(1, min(item_page, pages))
-        item = plex.fetchItem(missing_keys[item_page - 1])
+        if wanted is not None and wanted in missing_keys:
+            item_page = missing_keys.index(wanted) + 1
+        item = None
+        if wanted is not None:
+            try:
+                item = plex.fetchItem(wanted)  # still opens the clicked title if it just left the list
+            except Exception:
+                item = None
+        if item is None:
+            item = plex.fetchItem(missing_keys[item_page - 1])
     else:
         try:
             items = sort_items(list(section.all()), get_sort_pref())
@@ -1857,6 +1887,8 @@ def browse(section_key):
         item_page = int(request.args.get("page", 1))
         item_letter = request.args.get("letter", "All")
         item_page = max(1, min(item_page, pages))
+        if wanted is not None:
+            item_page = next((n for n, it in enumerate(items, 1) if it.ratingKey == wanted), item_page)
         item = items[item_page - 1]
 
     # same badges shown on the items.html grid, for a quick reminder here too
