@@ -6,7 +6,7 @@
 
   function apply(theme) {
     html.setAttribute('data-bs-theme', theme);
-    toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+    toggle.textContent = theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
   }
 
   apply(stored || (mq.matches ? 'dark' : 'light'));

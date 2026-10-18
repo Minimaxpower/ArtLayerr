@@ -40,6 +40,24 @@
   {% else %}
     <span class="badge bg-secondary">— Background</span>
   {% endif %}
+  {% if show_logo %}
+    {% if item.has_logo is none %}
+      <span class="badge bg-light text-dark">? Logo</span>
+    {% elif item.has_logo %}
+      <span class="badge bg-success">✓ Logo</span>
+    {% else %}
+      <span class="badge bg-secondary">— Logo</span>
+    {% endif %}
+  {% endif %}
+  {% if show_square %}
+    {% if item.has_square is none %}
+      <span class="badge bg-light text-dark">? Square</span>
+    {% elif item.has_square %}
+      <span class="badge bg-success">✓ Square</span>
+    {% else %}
+      <span class="badge bg-secondary">— Square</span>
+    {% endif %}
+  {% endif %}
   {% if section.type == 'show' %}
     {% if item.custom_seasons is none %}
       <span class="badge bg-light text-dark">? Seasons</span>
@@ -72,11 +90,15 @@
     <select name="art_type" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
       <option value="poster" {% if art_type=='poster' %}selected{% endif %}>Poster</option>
       <option value="background" {% if art_type=='background' %}selected{% endif %}>Background</option>
+      {% if show_logo or art_type == 'logo' %}<option value="logo" {% if art_type=='logo' %}selected{% endif %}>Logo</option>{% endif %}
+      {% if show_square or art_type == 'square' %}<option value="square" {% if art_type=='square' %}selected{% endif %}>Square art</option>{% endif %}
     </select>
   </form>
 </div>
 
 {% if section.type == 'show' %}
+  {# logos / square art exist only at show level: the Seasons / Episodes tabs go back to posters #}
+  {% set tab_art = art_type if art_type in ['poster', 'background'] else 'poster' %}
   {% set first_season_num = show_seasons[0].seasonNumber if show_seasons else none %}
   {% set current_season_num = season|int if season else first_season_num %}
 
@@ -89,19 +111,20 @@
     </li>
     <li class="nav-item">
       <a class="nav-link {% if season and not episode %}active{% endif %}"
-         href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, season=current_season_num, missing_type=missing_type if missing_type else none) }}">
+         href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=tab_art, art_page=1, season=current_season_num, missing_type=missing_type if missing_type else none) }}">
         Seasons
       </a>
     </li>
     <li class="nav-item">
       {# episode='first' is resolved server-side on click, so building this link costs no Plex call #}
       <a class="nav-link {% if episode %}active{% endif %}"
-         href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, season=current_season_num, episode='first', missing_type=missing_type if missing_type else none) }}">
+         href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=tab_art, art_page=1, season=current_season_num, episode='first', missing_type=missing_type if missing_type else none) }}">
         Episodes
       </a>
     </li>
   </ul>
 
+  {% if art_type in ['poster', 'background'] %}
   <form id="filter-form" method="get" class="mb-3">
     <input type="hidden" name="page" value="{{ item_page }}">
     <input type="hidden" name="art_type" value="{{ art_type }}">
@@ -130,6 +153,7 @@
       {% endif %}
     </div>
   </form>
+  {% endif %}
 {% endif %}
 
 {# Determine art items based on type and scope. The seasons/episodes were
@@ -143,7 +167,7 @@
 {% else %}
   {% set art_source = item %}
 {% endif %}
-{% set all_art = art_source.posters() if art_type == 'poster' else art_source.arts() %}
+{% set all_art = plex_art_candidates(art_source, art_type) %}
 
 {% set total_art = all_art|length %}
 {% set all_art = all_art|sort(attribute='selected', reverse=true) %}
@@ -152,6 +176,12 @@
 {% set start = (art_page-1) * per_page %}
 {% set end = start + per_page %}
 {% set page_items = all_art[start:end] %}
+
+{% if total_art == 0 and art_type in ['logo', 'square'] %}
+  <div class="alert alert-secondary">
+    Plex does not offer any {{ 'logo' if art_type == 'logo' else 'square art' }} for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below.
+  </div>
+{% endif %}
 
 <div class="row g-3 mb-3">
   <div class="col-md-6">
@@ -181,7 +211,7 @@
       <input type="hidden" name="art_type" value="{{ art_type }}">
       <input type="hidden" name="missing_type" value="{{ missing_type }}">
       <input type="file" name="image_file" class="form-control" accept="image/*" required>
-      <button type="submit" class="btn btn-primary text-nowrap">Uploader</button>
+      <button type="submit" class="btn btn-primary text-nowrap">Upload</button>
     </form>
   </div>
 </div>
@@ -224,7 +254,7 @@
         {% if img.selected %}
           <span class="badge bg-success position-absolute m-2" style="z-index: 3; top: 0; right: 0;">✓ Shown on Plex</span>
         {% endif %}
-        <img src="{{ img_url }}" class="card-img-top poster-img" role="button"
+        <img src="{{ img_url }}" class="card-img-top poster-img" role="button"{% if art_type == 'logo' %} style="aspect-ratio: 16 / 9; object-fit: contain; padding: 12px; background: rgba(128,128,128,.15);"{% endif %}
              onclick="showImagePreview('{{ img_url|e }}')">
         <div class="poster-overlay">
           <form action="{{ url_for('download') }}" method="post">

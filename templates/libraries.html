@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+  .lib-ignored { border-style: dashed; }
+  .lib-ignored .lib-body { opacity: .5; }
+  .lib-bars .progress:last-child { margin-bottom: 0 !important; }
+</style>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">Dashboard</h2>
   <div class="d-flex align-items-center gap-3">
@@ -8,7 +13,7 @@
     {% endif %}
     {% if computed_at %}
       <div class="btn-group btn-group-sm">
-        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export everything that is missing, all libraries">⬇ Export</button>
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export everything that is missing, all libraries (ignored ones excluded)">⬇ Export</button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li><h6 class="dropdown-header">Everything missing, all libraries</h6></li>
           <li><a class="dropdown-item" href="{{ url_for('export_missing', format='csv') }}">CSV (spreadsheet)</a></li>
@@ -25,144 +30,97 @@
     The first calculation is in progress as you view this page—it may take a moment, depending on the size of your libraries.
   </div>
 {% endif %}
+{% if art_pending %}
+  <div class="alert alert-secondary">
+    Logos / square art are switched on, but they have not been counted yet — click “Update”.
+  </div>
+{% endif %}
 
 {% set movie_libs = library_stats|selectattr('type', 'equalto', 'movie')|list %}
 {% set show_libs = library_stats|selectattr('type', 'equalto', 'show')|list %}
 {% set movie_mid = (movie_libs|length + 1) // 2 %}
 
-{% macro movie_card(lib) %}
-  <a href="{{ url_for('list_items', section_key=lib.key) }}" class="text-decoration-none text-body d-block mb-3">
-    <div class="card p-3 library-card">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <strong>{{ lib.title }}</strong>
+{% macro bar(label, done, total, color) %}
+  {% set pct = (done / total * 100) if total else 0 %}
+  <div class="small text-muted mb-1">{{ label }} — {{ done }}/{{ total }}</div>
+  <div class="progress mb-3" style="height: 6px;">
+    <div class="progress-bar" role="progressbar" style="width: {{ pct }}%; background-color: {{ color }};"></div>
+  </div>
+{% endmacro %}
+
+{# One card per library. The whole card opens the library (stretched link); the
+   Ignore / Include button sits above that link and only toggles the totals. #}
+{% macro lib_card(lib) %}
+  {% set ignored = lib.key|string in ignored_keys %}
+  <div class="card p-3 library-card position-relative mb-3{% if ignored %} lib-ignored{% endif %}">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <a href="{{ url_for('list_items', section_key=lib.key) }}" class="stretched-link text-decoration-none text-body lib-body"><strong>{{ lib.title }}</strong></a>
+      <div class="d-flex align-items-center gap-2 position-relative" style="z-index: 2;">
+        {% if ignored %}<span class="badge bg-warning text-dark">Ignored</span>{% endif %}
         <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
-      </div>
-      {% set lib_poster_pct = (lib.poster_done / lib.total * 100) if lib.total else 0 %}
-      <div class="small text-muted mb-1">Posters — {{ lib.poster_done }}/{{ lib.total }}</div>
-      <div class="progress mb-3" style="height: 6px;">
-        <div class="progress-bar" role="progressbar" style="width: {{ lib_poster_pct }}%; background-color: var(--accent);"></div>
-      </div>
-      {% set lib_bg_pct = (lib.bg_done / lib.total * 100) if lib.total else 0 %}
-      <div class="small text-muted mb-1">Backgrounds — {{ lib.bg_done }}/{{ lib.total }}</div>
-      <div class="progress" style="height: 6px;">
-        <div class="progress-bar" role="progressbar" style="width: {{ lib_bg_pct }}%; background-color: #3aa0c4;"></div>
+        <form method="post" action="{{ url_for('toggle_ignore_library', section_key=lib.key) }}" class="m-0">
+          <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: .7rem;"
+                  title="{% if ignored %}Count this library in the totals again{% else %}Leave this library out of the totals{% endif %}">{{ 'Include' if ignored else 'Ignore' }}</button>
+        </form>
       </div>
     </div>
-  </a>
+    <div class="lib-body lib-bars">
+      {{ bar('Posters', lib.poster_done, lib.total, 'var(--accent)') }}
+      {{ bar('Backgrounds', lib.bg_done, lib.total, '#3aa0c4') }}
+      {% if show_logo and art_scanned %}{{ bar('Logos', lib.logo_done or 0, lib.total, '#e8a33d') }}{% endif %}
+      {% if show_square and art_scanned %}{{ bar('Square art', lib.square_done or 0, lib.total, '#4cb782') }}{% endif %}
+      {% if lib.type == 'show' %}
+        {{ bar('Season posters', lib.season_done, lib.season_total, '#8e6ff0') }}
+        {{ bar('Episode Images', lib.episode_done, lib.episode_total, '#e85d9e') }}
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro ring(title, mtype, done, total, color) %}
+  {% set pct = ((done / total * 100) | round(0) | int) if total else 0 %}
+  <div class="col">
+    <a href="{{ url_for('missing_overview', missing_type=mtype) }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
+      <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">{{ title }}</div>
+      <div class="stat-ring mx-auto" style="--pct: {{ pct }};{% if color %} --ring-color: {{ color }};{% endif %} width: 90px; height: 90px;">
+        <div class="stat-ring-inner" style="width: 68px; height: 68px;">
+          <div class="fw-bold">{{ pct }}%</div>
+        </div>
+      </div>
+      <div class="row mt-2">
+        <div class="col"><div class="fw-bold small">{{ done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
+        <div class="col"><div class="fw-bold small">{{ total - done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
+        <div class="col"><div class="fw-bold small">{{ total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
+      </div>
+    </a>
+  </div>
 {% endmacro %}
 
 <div class="row g-3 mb-4">
   <div class="col-lg-3">
-    {% for lib in movie_libs[:movie_mid] %}{{ movie_card(lib) }}{% endfor %}
+    {% for lib in movie_libs[:movie_mid] %}{{ lib_card(lib) }}{% endfor %}
   </div>
 
   <div class="col-lg-3">
     <h6 class="text-uppercase small text-muted mb-2 mt-1 d-lg-none" style="letter-spacing: .05em;">Movies (continued)</h6>
-    {% for lib in movie_libs[movie_mid:] %}{{ movie_card(lib) }}{% endfor %}
+    {% for lib in movie_libs[movie_mid:] %}{{ lib_card(lib) }}{% endfor %}
   </div>
 
   <div class="col-lg-3">
-    {% for lib in show_libs %}
-      <a href="{{ url_for('list_items', section_key=lib.key) }}" class="text-decoration-none text-body d-block mb-3">
-        <div class="card p-3 library-card">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong>{{ lib.title }}</strong>
-            <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
-          </div>
-          {% set lib_poster_pct = (lib.poster_done / lib.total * 100) if lib.total else 0 %}
-          <div class="small text-muted mb-1">Posters — {{ lib.poster_done }}/{{ lib.total }}</div>
-          <div class="progress mb-3" style="height: 6px;">
-            <div class="progress-bar" role="progressbar" style="width: {{ lib_poster_pct }}%; background-color: var(--accent);"></div>
-          </div>
-          {% set lib_bg_pct = (lib.bg_done / lib.total * 100) if lib.total else 0 %}
-          <div class="small text-muted mb-1">Backgrounds — {{ lib.bg_done }}/{{ lib.total }}</div>
-          <div class="progress mb-3" style="height: 6px;">
-            <div class="progress-bar" role="progressbar" style="width: {{ lib_bg_pct }}%; background-color: #3aa0c4;"></div>
-          </div>
-          {% set lib_season_pct = (lib.season_done / lib.season_total * 100) if lib.season_total else 0 %}
-          <div class="small text-muted mb-1">Season posters — {{ lib.season_done }}/{{ lib.season_total }}</div>
-          <div class="progress mb-3" style="height: 6px;">
-            <div class="progress-bar" role="progressbar" style="width: {{ lib_season_pct }}%; background-color: #8e6ff0;"></div>
-          </div>
-          {% set lib_episode_pct = (lib.episode_done / lib.episode_total * 100) if lib.episode_total else 0 %}
-          <div class="small text-muted mb-1">Episode Images — {{ lib.episode_done }}/{{ lib.episode_total }}</div>
-          <div class="progress" style="height: 6px;">
-            <div class="progress-bar" role="progressbar" style="width: {{ lib_episode_pct }}%; background-color: #e85d9e;"></div>
-          </div>
-        </div>
-      </a>
-    {% endfor %}
+    {% for lib in show_libs %}{{ lib_card(lib) }}{% endfor %}
   </div>
 
   <div class="col-lg-3">
+    {% if ignored_count %}
+      <div class="small text-muted mb-2">Totals leave out {{ ignored_count }} ignored {{ 'library' if ignored_count == 1 else 'libraries' }}.</div>
+    {% endif %}
     <div class="row row-cols-2 g-2">
-      <div class="col">
-        <a href="{{ url_for('missing_overview', missing_type='poster') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
-          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Posters</div>
-          {% set poster_pct = ((totals.poster_done / totals.poster_total * 100) | round(0) | int) if totals.poster_total else 0 %}
-          <div class="stat-ring mx-auto" style="--pct: {{ poster_pct }}; width: 90px; height: 90px;">
-            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
-              <div class="fw-bold">{{ poster_pct }}%</div>
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col"><div class="fw-bold small">{{ totals.poster_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.poster_total - totals.poster_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.poster_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
-          </div>
-        </a>
-      </div>
-
-      <div class="col">
-        <a href="{{ url_for('missing_overview', missing_type='season') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
-          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Season posters</div>
-          {% set season_pct = ((totals.season_done / totals.season_total * 100) | round(0) | int) if totals.season_total else 0 %}
-          <div class="stat-ring mx-auto" style="--pct: {{ season_pct }}; --ring-color: #8e6ff0; width: 90px; height: 90px;">
-            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
-              <div class="fw-bold">{{ season_pct }}%</div>
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col"><div class="fw-bold small">{{ totals.season_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.season_total - totals.season_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.season_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
-          </div>
-        </a>
-      </div>
-
-      <div class="col">
-        <a href="{{ url_for('missing_overview', missing_type='background') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
-          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Backgrounds</div>
-          {% set bg_pct = ((totals.bg_done / totals.bg_total * 100) | round(0) | int) if totals.bg_total else 0 %}
-          <div class="stat-ring mx-auto" style="--pct: {{ bg_pct }}; --ring-color: #3aa0c4; width: 90px; height: 90px;">
-            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
-              <div class="fw-bold">{{ bg_pct }}%</div>
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col"><div class="fw-bold small">{{ totals.bg_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.bg_total - totals.bg_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.bg_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
-          </div>
-        </a>
-      </div>
-
-      <div class="col">
-        <a href="{{ url_for('missing_overview', missing_type='episode') }}" class="card h-100 p-3 text-center text-decoration-none text-body library-card" title="Show what is missing">
-          <div class="text-uppercase small text-muted mb-2" style="letter-spacing: .05em; font-size: .7rem;">Episode images</div>
-          {% set episode_pct = ((totals.episode_done / totals.episode_total * 100) | round(0) | int) if totals.episode_total else 0 %}
-          <div class="stat-ring mx-auto" style="--pct: {{ episode_pct }}; --ring-color: #e85d9e; width: 90px; height: 90px;">
-            <div class="stat-ring-inner" style="width: 68px; height: 68px;">
-              <div class="fw-bold">{{ episode_pct }}%</div>
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col"><div class="fw-bold small">{{ totals.episode_done }}</div><div class="text-muted" style="font-size:.65rem;">DONE</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.episode_total - totals.episode_done }}</div><div class="text-muted" style="font-size:.65rem;">MISSING</div></div>
-            <div class="col"><div class="fw-bold small">{{ totals.episode_total }}</div><div class="text-muted" style="font-size:.65rem;">TOTAL</div></div>
-          </div>
-        </a>
-      </div>
+      {{ ring('Posters', 'poster', totals.poster_done, totals.poster_total, none) }}
+      {{ ring('Season posters', 'season', totals.season_done, totals.season_total, '#8e6ff0') }}
+      {{ ring('Backgrounds', 'background', totals.bg_done, totals.bg_total, '#3aa0c4') }}
+      {{ ring('Episode images', 'episode', totals.episode_done, totals.episode_total, '#e85d9e') }}
+      {% if show_logo and art_scanned %}{{ ring('Logos', 'logo', totals.logo_done, totals.logo_total, '#e8a33d') }}{% endif %}
+      {% if show_square and art_scanned %}{{ ring('Square art', 'square', totals.square_done, totals.square_total, '#4cb782') }}{% endif %}
     </div>
   </div>
 </div>

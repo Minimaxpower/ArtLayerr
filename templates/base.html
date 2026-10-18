@@ -212,8 +212,35 @@
         <a href="https://github.com/Minimaxpower/ArtLayerr/releases" target="_blank" rel="noopener" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary-emphasis fw-normal text-decoration-none me-1" title="ArtLayerr {{ app_version }}">{{ app_version.split("-")[0] }}</a>
         {% if update_info %}<a href="{{ update_info.url }}" target="_blank" rel="noopener" class="badge rounded-pill bg-warning text-dark text-decoration-none me-1" title="ArtLayerr {{ update_info.version }} is available. To update: docker compose pull &amp;&amp; docker compose up -d">⬆ {{ update_info.version }} available</a>{% endif %}
         {% if request.endpoint != 'login' %}<a href="{{ url_for('mediux_check') }}" class="btn btn-outline-secondary btn-sm ms-3">Mediux Check</a>{% endif %}
-        <button id="theme-toggle" type="button" class="btn btn-outline-secondary btn-sm ms-auto">🌙</button>
-        {% if auth_enabled and session.get('authenticated') %}<a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm ms-2">Log out</a>{% endif %}
+        <div class="dropdown ms-auto">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">⚙ Settings</button>
+          <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width: 250px;">
+            {% if request.endpoint != 'login' %}
+              <li><h6 class="dropdown-header px-2">Display</h6></li>
+              <li>
+                <form method="post" action="{{ url_for('save_settings') }}" class="px-2 mb-1">
+                  <input type="hidden" name="next" value="{{ request.path }}{% if request.query_string %}?{{ request.query_string.decode('utf-8', 'replace') }}{% endif %}">
+                  <div class="form-check form-switch mb-1">
+                    <input class="form-check-input" type="checkbox" role="switch" id="set-logo" name="show_logo" value="1" {% if show_logo %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label" for="set-logo">Show logos <span class="text-muted">(L)</span></label>
+                  </div>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="set-square" name="show_square" value="1" {% if show_square %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label" for="set-square">Show square art <span class="text-muted">(Q)</span></label>
+                  </div>
+                  <noscript><button type="submit" class="btn btn-sm btn-secondary mt-2">Apply</button></noscript>
+                </form>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+            {% endif %}
+            <li><h6 class="dropdown-header px-2">Appearance</h6></li>
+            <li><button id="theme-toggle" type="button" class="dropdown-item rounded">🌙 Dark mode</button></li>
+            {% if auth_enabled and session.get('authenticated') %}
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item rounded" href="{{ url_for('logout') }}">Log out</a></li>
+            {% endif %}
+          </ul>
+        </div>
       </div>
     </nav>
     <div class="container">

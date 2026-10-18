@@ -154,6 +154,51 @@ def inject_update():
     return {"update_info": get_update_info()}
 
 
+# ---- display settings (per browser, kept in cookies) -------------------------
+# Logos and square art are optional: most people don't use them, so they are
+# hidden (chips, filters, dashboard rings, export columns) unless switched on
+# in the Settings menu. Everything is still scanned, so switching them on needs
+# no new check.
+ART_TYPES = ("poster", "background", "logo", "square")
+ART_EXTRAS = ("logo", "square")
+
+
+def enabled_art_types():
+    return [t for t in ART_EXTRAS if request.cookies.get(f"artlayerr_show_{t}") == "1"]
+
+
+def active_art_types():
+    """Enabled in the settings AND present in the last scan of the assets."""
+    return enabled_art_types() if _ASSET_CACHE.get("art_scanned") else []
+
+
+@app.context_processor
+def inject_art_prefs():
+    enabled = enabled_art_types()
+    scanned = bool(_ASSET_CACHE.get("art_scanned"))
+    checked = _ASSET_CACHE.get("computed_at") is not None
+    return {
+        "show_logo": "logo" in enabled,
+        "show_square": "square" in enabled,
+        "art_scanned": scanned,
+        # switched on, but the saved scan predates logo/square support: one Update fixes it
+        "art_pending": bool(enabled) and checked and not scanned,
+    }
+
+
+@app.route("/settings", methods=["POST"])
+def save_settings():
+    resp = redirect(_safe_next(request.form.get("next")))
+    for kind in ART_EXTRAS:
+        resp.set_cookie(
+            f"artlayerr_show_{kind}",
+            "1" if request.form.get(f"show_{kind}") else "0",
+            max_age=PREF_COOKIE_MAX_AGE,
+            samesite="Lax",
+        )
+    return resp
+
+
 @app.before_request
 def require_password():
     if not APP_PASSWORD:
@@ -272,6 +317,13 @@ _ASSET_CACHE = {
     "series_posters": set(),
     "series_backgrounds": set(),
     "series_season_episode": {},
+    "movie_logos": set(),
+    "movie_squares": set(),
+    "series_logos": set(),
+    "series_squares": set(),
+    # False for a scan saved before logo/square support existed: those flags
+    # then stay "unknown" (?) until the next Update instead of looking missing
+    "art_scanned": False,
     "computed_at": None,
 }
 
@@ -280,11 +332,14 @@ _EPISODE_FILE_RE = re.compile(r"^s\d+e\d+", re.IGNORECASE)
 
 
 def _scan_asset_folders(root):
-    """Scan `root` (assets/movies or assets/series) and return two sets of
-    folder names: those containing a poster.* file, and those containing a
-    background.* file, directly inside them (files are flat, no subfolders)."""
+    """Scan `root` (assets/movies or assets/series) and return four sets of
+    folder names: those containing a poster.*, a background.*, a logo.* (or
+    clearlogo.*) and a square.* file, directly inside them (files are flat, no
+    subfolders)."""
     posters = set()
     backgrounds = set()
+    logos = set()
+    squares = set()
     try:
         with os.scandir(root) as entries:
             for entry in entries:
@@ -298,13 +353,17 @@ def _scan_asset_folders(root):
                             name = f.name.lower()
                             if name.startswith("poster"):
                                 posters.add(entry.name)
+                            elif name.startswith(("square", "backgroundsquare")):
+                                squares.add(entry.name)  # before "background": backgroundSquare is not a background
                             elif name.startswith("background"):
                                 backgrounds.add(entry.name)
+                            elif name.startswith(("logo", "clearlogo")):
+                                logos.add(entry.name)
                 except (FileNotFoundError, PermissionError):
                     pass
     except (FileNotFoundError, PermissionError):
         pass
-    return posters, backgrounds
+    return posters, backgrounds, logos, squares
 
 
 def _scan_series_season_episode_assets(root):
@@ -345,12 +404,15 @@ def get_asset_folders(asset_root, force=False):
     actually (re)do the disk scan (used by the manual refresh button and
     right after a download)."""
     if force:
-        _ASSET_CACHE["movie_posters"], _ASSET_CACHE["movie_backgrounds"] = _scan_asset_folders(
-            os.path.join(asset_root, "movies")
-        )
-        _ASSET_CACHE["series_posters"], _ASSET_CACHE["series_backgrounds"] = _scan_asset_folders(
-            os.path.join(asset_root, "series")
-        )
+        (
+            _ASSET_CACHE["movie_posters"], _ASSET_CACHE["movie_backgrounds"],
+            _ASSET_CACHE["movie_logos"], _ASSET_CACHE["movie_squares"],
+        ) = _scan_asset_folders(os.path.join(asset_root, "movies"))
+        (
+            _ASSET_CACHE["series_posters"], _ASSET_CACHE["series_backgrounds"],
+            _ASSET_CACHE["series_logos"], _ASSET_CACHE["series_squares"],
+        ) = _scan_asset_folders(os.path.join(asset_root, "series"))
+        _ASSET_CACHE["art_scanned"] = True
         _ASSET_CACHE["series_season_episode"] = _scan_series_season_episode_assets(
             os.path.join(asset_root, "series")
         )
@@ -368,10 +430,13 @@ def annotate_asset_flags(items, asset_dir=None):
     asset_root = os.path.join(os.getcwd(), asset_dir or session.get("asset_dir", "assets"))
     cache = get_asset_folders(asset_root)  # force=False: just reads, never scans
     checked = cache["computed_at"] is not None
+    art_scanned = bool(cache.get("art_scanned"))
     for item in items:
         if not checked:
             item.has_poster = None
             item.has_background = None
+            item.has_logo = None
+            item.has_square = None
             item.custom_seasons = None
             item.custom_episode_count = None
             item.custom_seasons_display = None
@@ -384,6 +449,8 @@ def annotate_asset_flags(items, asset_dir=None):
                 asset_name = os.path.basename(os.path.dirname(media_file))
                 item.has_poster = asset_name in cache["movie_posters"]
                 item.has_background = asset_name in cache["movie_backgrounds"]
+                item.has_logo = (asset_name in cache["movie_logos"]) if art_scanned else None
+                item.has_square = (asset_name in cache["movie_squares"]) if art_scanned else None
                 item.custom_seasons = None
                 item.custom_episode_count = None
                 item.custom_seasons_display = None
@@ -393,6 +460,8 @@ def annotate_asset_flags(items, asset_dir=None):
                 asset_name = os.path.basename(item.locations[0])
                 item.has_poster = asset_name in cache["series_posters"]
                 item.has_background = asset_name in cache["series_backgrounds"]
+                item.has_logo = (asset_name in cache["series_logos"]) if art_scanned else None
+                item.has_square = (asset_name in cache["series_squares"]) if art_scanned else None
                 se_info = cache["series_season_episode"].get(asset_name)
                 item.custom_seasons = se_info["seasons"] if se_info else set()
                 item.custom_episode_count = se_info["episode_count"] if se_info else 0
@@ -417,6 +486,8 @@ def annotate_asset_flags(items, asset_dir=None):
         except Exception:
             item.has_poster = False
             item.has_background = False
+            item.has_logo = False
+            item.has_square = False
             item.custom_seasons = set()
             item.custom_episode_count = 0
             item.custom_seasons_display = None
@@ -436,9 +507,20 @@ _MISSING_CACHE = {}
 MISSING_TYPES = {
     "poster": {"label": "poster", "show_only": False},
     "background": {"label": "background", "show_only": False},
+    "logo": {"label": "logo", "show_only": False},
+    "square": {"label": "square art", "show_only": False},
     "season": {"label": "season poster", "show_only": True},
     "episode": {"label": "episode image", "show_only": True},
 }
+
+
+def missing_types_for(section_type):
+    """Filters offered for a library: logo / square art only when switched on in
+    the settings (and already scanned), season / episode only for shows."""
+    types = ["poster", "background"] + active_art_types()
+    if section_type == "show":
+        types += ["season", "episode"]
+    return types
 
 
 def _is_missing(item, missing_type):
@@ -446,6 +528,10 @@ def _is_missing(item, missing_type):
         return not item.has_poster
     if missing_type == "background":
         return not item.has_background
+    if missing_type == "logo":
+        return not item.has_logo
+    if missing_type == "square":
+        return not item.has_square
     # "missing" = not every season / episode has a custom file yet (this is
     # what the dashboard rings count too, so a ring click lists the same shows)
     if missing_type == "season":
@@ -488,8 +574,12 @@ def refresh_asset_check(plex, section_key=None):
 
 # dashboard stats are expensive (a full section.all() per movie/show library),
 # so — same philosophy as the rest of this app — they're computed only on
-# demand (first visit, or an explicit "Actualiser" click), never on a timer.
+# demand (first visit, or an explicit "Update" click), never on a timer.
 _DASHBOARD_CACHE = {"data": None, "computed_at": None}
+
+# keys (as text) of the libraries the user chose to leave out of the dashboard
+# totals; kept in the state file so the choice survives a restart
+_IGNORED = set()
 
 
 # --- persistence -----------------------------------------------------------
@@ -517,12 +607,18 @@ def save_state():
         }
         payload = {
             "version": _STATE_VERSION,
+            "ignored_libraries": sorted(_IGNORED),
             "asset_cache": {
                 "movie_posters": sorted(_ASSET_CACHE["movie_posters"]),
                 "movie_backgrounds": sorted(_ASSET_CACHE["movie_backgrounds"]),
                 "series_posters": sorted(_ASSET_CACHE["series_posters"]),
                 "series_backgrounds": sorted(_ASSET_CACHE["series_backgrounds"]),
                 "series_season_episode": series_se,
+                "movie_logos": sorted(_ASSET_CACHE["movie_logos"]),
+                "movie_squares": sorted(_ASSET_CACHE["movie_squares"]),
+                "series_logos": sorted(_ASSET_CACHE["series_logos"]),
+                "series_squares": sorted(_ASSET_CACHE["series_squares"]),
+                "art_scanned": bool(_ASSET_CACHE["art_scanned"]),
                 "computed_at": _ASSET_CACHE["computed_at"],
             },
             "dashboard": {
@@ -558,7 +654,14 @@ def load_state():
                 }
                 for name, info in (ac.get("series_season_episode") or {}).items()
             }
+            _ASSET_CACHE["movie_logos"] = set(ac.get("movie_logos", []))
+            _ASSET_CACHE["movie_squares"] = set(ac.get("movie_squares", []))
+            _ASSET_CACHE["series_logos"] = set(ac.get("series_logos", []))
+            _ASSET_CACHE["series_squares"] = set(ac.get("series_squares", []))
+            _ASSET_CACHE["art_scanned"] = bool(ac.get("art_scanned", False))
             _ASSET_CACHE["computed_at"] = ac["computed_at"]
+        _IGNORED.clear()
+        _IGNORED.update(str(k) for k in payload.get("ignored_libraries", []))
         dash = payload.get("dashboard") or {}
         if dash.get("data") and dash.get("computed_at"):
             _DASHBOARD_CACHE["data"] = dash["data"]
@@ -567,9 +670,10 @@ def load_state():
         pass  # missing or unreadable file: just start empty, as before
 
 
-def compute_dashboard_stats(plex, asset_dir=None):
-    sections = sorted(plex.library.sections(), key=lambda s: sort_key(s.title))
-    library_stats = []
+def compute_totals(library_stats, ignored=()):
+    """Dashboard totals, summed over the libraries that are not ignored. Done on
+    every page view (it is only a few additions), so ignoring or including a
+    library takes effect at once, without a new check."""
     totals = {
         "total_items": 0,
         "poster_done": 0, "poster_total": 0,
@@ -578,7 +682,33 @@ def compute_dashboard_stats(plex, asset_dir=None):
         # the percentage isn't diluted by movie libraries that have neither
         "season_done": 0, "season_total": 0,
         "episode_done": 0, "episode_total": 0,
+        "logo_done": 0, "logo_total": 0,
+        "square_done": 0, "square_total": 0,
     }
+    for lib in library_stats:
+        if str(lib["key"]) in ignored:
+            continue
+        total = lib["total"]
+        totals["total_items"] += total
+        totals["poster_done"] += lib["poster_done"]
+        totals["poster_total"] += total
+        totals["bg_done"] += lib["bg_done"]
+        totals["bg_total"] += total
+        totals["logo_done"] += lib.get("logo_done") or 0
+        totals["logo_total"] += total
+        totals["square_done"] += lib.get("square_done") or 0
+        totals["square_total"] += total
+        if lib.get("season_total") is not None:
+            totals["season_done"] += lib["season_done"]
+            totals["season_total"] += lib["season_total"]
+            totals["episode_done"] += lib["episode_done"]
+            totals["episode_total"] += lib["episode_total"]
+    return totals
+
+
+def compute_dashboard_stats(plex, asset_dir=None):
+    sections = sorted(plex.library.sections(), key=lambda s: sort_key(s.title))
+    library_stats = []
 
     for section in sections:
         if section.type not in ("movie", "show"):
@@ -591,6 +721,8 @@ def compute_dashboard_stats(plex, asset_dir=None):
         total = len(items)
         poster_done = sum(1 for i in items if i.has_poster)
         bg_done = sum(1 for i in items if i.has_background)
+        logo_done = sum(1 for i in items if i.has_logo)
+        square_done = sum(1 for i in items if i.has_square)
 
         lib_entry = {
             "key": section.key,
@@ -599,6 +731,8 @@ def compute_dashboard_stats(plex, asset_dir=None):
             "total": total,
             "poster_done": poster_done,
             "bg_done": bg_done,
+            "logo_done": logo_done,
+            "square_done": square_done,
         }
 
         if section.type == "show":
@@ -616,10 +750,6 @@ def compute_dashboard_stats(plex, asset_dir=None):
             lib_entry["episode_done"] = episode_done
             lib_entry["episode_total"] = episode_total
 
-            totals["season_done"] += season_done
-            totals["season_total"] += season_total
-            totals["episode_done"] += episode_done
-            totals["episode_total"] += episode_total
         else:
             lib_entry["season_done"] = None
             lib_entry["season_total"] = None
@@ -627,14 +757,9 @@ def compute_dashboard_stats(plex, asset_dir=None):
             lib_entry["episode_total"] = None
 
         library_stats.append(lib_entry)
-        totals["total_items"] += total
-        totals["poster_done"] += poster_done
-        totals["poster_total"] += total
-        totals["bg_done"] += bg_done
-        totals["bg_total"] += total
 
     library_stats.sort(key=lambda lib: (lib["type"], sort_key(lib["title"])))
-    return {"library_stats": library_stats, "totals": totals}
+    return {"library_stats": library_stats, "totals": compute_totals(library_stats)}
 
 
 # ---- shared refresh + optional automatic refresh ---------------------------
@@ -1027,6 +1152,8 @@ def libraries():
     if _DASHBOARD_CACHE["data"] is None or request.args.get("refresh") == "1":
         run_full_refresh(plex)
 
+    library_stats = _DASHBOARD_CACHE["data"]["library_stats"]
+
     computed_at_display = None
     if _DASHBOARD_CACHE["computed_at"]:
         computed_at_display = datetime.datetime.fromtimestamp(
@@ -1035,24 +1162,47 @@ def libraries():
 
     return render_template(
         "libraries.html",
-        library_stats=_DASHBOARD_CACHE["data"]["library_stats"],
-        totals=_DASHBOARD_CACHE["data"]["totals"],
+        library_stats=library_stats,
+        totals=compute_totals(library_stats, _IGNORED),
+        ignored_keys=_IGNORED,
+        ignored_count=sum(1 for lib in library_stats if str(lib["key"]) in _IGNORED),
         computed_at=_DASHBOARD_CACHE["computed_at"],
         computed_at_display=computed_at_display,
         auto_refresh_hours=("%g" % (AUTO_REFRESH_SECONDS / 3600)) if _AUTO["active"] else None,
     )
 
 
+@app.route("/dashboard/ignore/<section_key>", methods=["POST"])
+def toggle_ignore_library(section_key):
+    """Leave a library out of (or back into) the dashboard totals."""
+    plex = get_plex()
+    if not plex:
+        return redirect(url_for("connect"))
+    key = str(section_key)
+    known = {str(lib["key"]) for lib in (_DASHBOARD_CACHE["data"] or {}).get("library_stats", [])}
+    if key in known:
+        if key in _IGNORED:
+            _IGNORED.discard(key)
+        else:
+            _IGNORED.add(key)
+        save_state()
+    return redirect(url_for("libraries"))
+
+
 # which dashboard numbers back each ring: (done key, total key) in library_stats
 MISSING_RING_FIELDS = {
     "poster": ("poster_done", "total"),
     "background": ("bg_done", "total"),
+    "logo": ("logo_done", "total"),
+    "square": ("square_done", "total"),
     "season": ("season_done", "season_total"),
     "episode": ("episode_done", "episode_total"),
 }
 MISSING_UNITS = {
     "poster": "posters",
     "background": "backgrounds",
+    "logo": "logos",
+    "square": "square art",
     "season": "season posters",
     "episode": "episode images",
 }
@@ -1074,6 +1224,8 @@ def missing_overview(missing_type):
     done_key, total_key = MISSING_RING_FIELDS[missing_type]
     libs = []
     for lib in data["library_stats"]:
+        if str(lib["key"]) in _IGNORED:
+            continue  # left out of the totals, so out of the rings' picker too
         done, total = lib.get(done_key), lib.get(total_key)
         if done is None or total is None:
             continue  # e.g. season/episode figures don't exist for movie libraries
@@ -1094,20 +1246,31 @@ def missing_overview(missing_type):
 
 
 # ---- export of what is missing (CSV / text) ---------------------------------
-EXPORT_TYPES = {
-    "movie": ["poster", "background"],
-    "show": ["poster", "background", "season", "episode"],
-}
+EXPORT_SECTION_TYPES = ("movie", "show")
 EXPORT_MISSING_NAMES = {
     "poster": "poster",
     "background": "background",
+    "logo": "logo",
+    "square": "square art",
     "season": "seasons",
     "episode": "episodes",
 }
-EXPORT_COLUMNS = [
-    "Library", "Title", "Year", "Type", "Missing", "Poster", "Background",
-    "Seasons", "Episodes", "TMDB", "TVDB", "IMDB", "Plex key", "Asset folder",
-]
+
+
+def _export_kinds(section_type, art_types):
+    kinds = ["poster", "background"] + list(art_types)
+    if section_type == "show":
+        kinds += ["season", "episode"]
+    return kinds
+
+
+def _export_columns(art_types):
+    columns = ["Library", "Title", "Year", "Type", "Missing", "Poster", "Background"]
+    if "logo" in art_types:
+        columns.append("Logo")
+    if "square" in art_types:
+        columns.append("Square")
+    return columns + ["Seasons", "Episodes", "TMDB", "TVDB", "IMDB", "Plex key", "Asset folder"]
 
 
 def _csv_cell(value):
@@ -1140,11 +1303,12 @@ def _asset_folder_name(item):
         return ""
 
 
-def collect_missing_rows(section, missing_type=""):
+def collect_missing_rows(section, missing_type="", art_types=()):
     """One row per item of this library that lacks something. With
     missing_type, only the items lacking that one thing. Needs a check to have
-    been run (annotate_asset_flags reads the last check)."""
-    kinds = EXPORT_TYPES[section.type]
+    been run (annotate_asset_flags reads the last check). art_types: the
+    optional kinds (logo / square) to include."""
+    kinds = _export_kinds(section.type, art_types)
     if missing_type and missing_type not in kinds:
         return []
     items = sort_items(list(section.all()), "title")
@@ -1164,6 +1328,8 @@ def collect_missing_rows(section, missing_type=""):
             "Missing": "; ".join(EXPORT_MISSING_NAMES[t] for t in missing),
             "Poster": "yes" if item.has_poster else "no",
             "Background": "yes" if item.has_background else "no",
+            "Logo": "yes" if item.has_logo else "no",
+            "Square": "yes" if item.has_square else "no",
             "Seasons": f"{len(item.custom_seasons)}/{getattr(item, 'childCount', 0) or 0}" if is_show else "",
             "Episodes": f"{item.custom_episode_count}/{getattr(item, 'leafCount', 0) or 0}" if is_show else "",
             "TMDB": ids.get("tmdb", ""),
@@ -1175,12 +1341,13 @@ def collect_missing_rows(section, missing_type=""):
     return rows
 
 
-def _rows_to_csv(rows):
+def _rows_to_csv(rows, art_types=()):
+    columns = _export_columns(art_types)
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(EXPORT_COLUMNS)
+    writer.writerow(columns)
     for row in rows:
-        writer.writerow([_csv_cell(row[c]) for c in EXPORT_COLUMNS])
+        writer.writerow([_csv_cell(row[c]) for c in columns])
     return "\ufeff" + buf.getvalue()  # BOM: Excel then reads the accents correctly
 
 
@@ -1221,17 +1388,21 @@ def export_missing():
         flash("Run a check first (\U0001F504 Update) before exporting.")
         return redirect(back)
 
+    art_types = active_art_types()
     try:
-        sections = [s for s in plex.library.sections() if s.type in EXPORT_TYPES]
+        sections = [s for s in plex.library.sections() if s.type in EXPORT_SECTION_TYPES]
         sections.sort(key=lambda s: (s.type, sort_key(s.title)))
         if section_key:
             sections = [s for s in sections if str(s.key) == section_key]
             if not sections:
                 flash("Library not found.")
                 return redirect(url_for("libraries"))
+        else:
+            # the dashboard export follows the dashboard totals: ignored libraries stay out
+            sections = [s for s in sections if str(s.key) not in _IGNORED]
         rows = []
         for s in sections:
-            rows += collect_missing_rows(s, missing_type)
+            rows += collect_missing_rows(s, missing_type, art_types)
     except requests.exceptions.RequestException:
         flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
         return redirect(back)
@@ -1242,7 +1413,7 @@ def export_missing():
 
     scope = re.sub(r"[^A-Za-z0-9]+", "-", sections[0].title).strip("-").lower() if section_key else "all"
     name = f"artlayerr-missing-{scope or 'library'}-{datetime.date.today().isoformat()}.{fmt}"
-    body = _rows_to_csv(rows) if fmt == "csv" else _rows_to_text(rows)
+    body = _rows_to_csv(rows, art_types) if fmt == "csv" else _rows_to_text(rows)
     resp = Response(body, mimetype="text/csv" if fmt == "csv" else "text/plain")
     resp.headers["Content-Disposition"] = f'attachment; filename="{name}"'
     return resp
@@ -1459,9 +1630,7 @@ def list_items(section_key):
     checked = _ASSET_CACHE["computed_at"] is not None
 
     # which filter buttons make sense for this library type
-    available_missing_types = ["poster", "background"]
-    if section.type == "show":
-        available_missing_types += ["season", "episode"]
+    available_missing_types = missing_types_for(section.type)
 
     # requested filter, validated against what's actually offered here
     missing_type = request.args.get("missing_type", "")
@@ -1651,9 +1820,7 @@ def browse(section_key):
     if not section:
         flash("Library not found.")
         return redirect(url_for("libraries"))
-    available_missing_types = ["poster", "background"]
-    if section.type == "show":
-        available_missing_types += ["season", "episode"]
+    available_missing_types = missing_types_for(section.type)
     missing_type = request.args.get("missing_type", "")
     if missing_type not in available_missing_types:
         missing_type = ""
@@ -1696,8 +1863,13 @@ def browse(section_key):
     annotate_asset_flags([item])
 
     art_type = request.args.get("art_type", "poster")
+    if art_type not in ART_TYPES:
+        art_type = "poster"
     season = request.args.get("season") or None
     episode = request.args.get("episode") or None
+    if art_type in ART_EXTRAS:  # logos / square art only exist at movie / show level
+        season = None
+        episode = None
     art_page = int(request.args.get("art_page", 1))
 
     # Seasons/episodes are fetched ONCE here and handed to the template, which
@@ -1795,6 +1967,34 @@ def browse(section_key):
     )
 
 
+def plex_art_candidates(source, art_type):
+    """Images Plex offers for this item, for the chosen art type."""
+    if art_type == "poster":
+        return source.posters()
+    if art_type == "background":
+        return source.arts()
+    # logo / square art: use plexapi's own method when this version has one,
+    # else ask the Plex endpoint directly; an old server that doesn't know the
+    # endpoint just means "nothing offered" (a URL or a file can still be used)
+    methods = {"logo": ("logos", "clearLogos"), "square": ("squareArts", "squareArt")}[art_type]
+    endpoint = {"logo": "clearLogos", "square": "squareArts"}[art_type]
+    for name in methods:
+        method = getattr(source, name, None)
+        if callable(method):
+            try:
+                return list(method())
+            except Exception:
+                break
+    try:
+        from plexapi import media as plex_media
+        return source.fetchItems(f"/library/metadata/{source.ratingKey}/{endpoint}", cls=plex_media.Poster)
+    except Exception:
+        return []
+
+
+app.jinja_env.globals["plex_art_candidates"] = plex_art_candidates
+
+
 def compute_asset_base_dir(item, season_item):
     try:
         asset_name = None
@@ -1844,13 +2044,20 @@ def get_download_context(form):
         season_rating_key = int(form["season_rating_key"])
     except:
         season_rating_key = None
+    art_type = form["art_type"]
+    if art_type not in ART_TYPES:  # it ends up in a file name: only known values
+        abort(400)
+    season = None if form.get("season") == "None" else form.get("season")
+    episode = None if form.get("episode") == "None" else form.get("episode")
+    if art_type in ART_EXTRAS:  # logos / square art only exist at movie / show level
+        season = episode = season_rating_key = None
     return {
         "rating_key": rating_key,
         "season_rating_key": season_rating_key,
         "section_key": form["section_key"],
-        "art_type": form["art_type"],
-        "season": None if form.get("season") == "None" else form.get("season"),
-        "episode": None if form.get("episode") == "None" else form.get("episode"),
+        "art_type": art_type,
+        "season": season,
+        "episode": episode,
         "item_page": form.get("item_page", 1),
         "art_page": form.get("art_page", 1),
         "missing_type": form.get("missing_type", ""),
@@ -1874,7 +2081,7 @@ def download():
     base_dir = compute_asset_base_dir(item, season_item)
     os.makedirs(base_dir, exist_ok=True)
 
-    ext = os.path.splitext(img_key)[1] or ".jpg"
+    ext = os.path.splitext(img_key)[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
 
     if img_key.startswith("http"):
@@ -1941,7 +2148,7 @@ def upload_url():
     base_dir = compute_asset_base_dir(item, season_item)
     os.makedirs(base_dir, exist_ok=True)
 
-    ext = os.path.splitext(image_url.split("?")[0])[1] or ".jpg"
+    ext = os.path.splitext(image_url.split("?")[0])[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
 
     try:
@@ -2004,7 +2211,7 @@ def upload_file():
     base_dir = compute_asset_base_dir(item, season_item)
     os.makedirs(base_dir, exist_ok=True)
 
-    ext = os.path.splitext(uploaded.filename)[1] or ".jpg"
+    ext = os.path.splitext(uploaded.filename)[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
 
     uploaded.save(os.path.join(base_dir, filename))

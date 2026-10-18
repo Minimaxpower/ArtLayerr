@@ -3,7 +3,7 @@
 > **Renamed:** ArtLayerr was previously called Layerr. If you installed the old image
 > (`ghcr.io/minimaxpower/layerr`), switch to `ghcr.io/minimaxpower/artlayerr`: the old one no longer receives updates.
 
-A web UI that lets you scroll through the images that Plex provides for each item (movie, show, season, episode, background) and pick the one you want with a single click.
+A web UI that lets you scroll through the images that Plex provides for each item (movie, show, season, episode, background, logo, square art) and pick the one you want with a single click.
 
 When you click on an image, it is downloaded to a dedicated `assets` directory with the correct pathing and naming for Kometa.
 
@@ -133,6 +133,8 @@ Green indicates you have everything (for example all seasons and all episodes). 
 
 ![](images/shows-filters.jpg)
 
+Each card carries colored chips: `P` poster, `B` background, `L` logo and `Q` square art (these two only when switched on, see below), then `S` season posters and `E` episode images for shows. Green means complete, blue partial (for example `S 3/5`), gray missing, and light gray not checked yet. Hover a chip for the detail.
+
 If you click on a show, you'll get the same kind of grid as for movies:
 
 ![](images/shows-posters.jpg)
@@ -156,6 +158,12 @@ The four rings on Library Dashboard (posters, season posters, backgrounds, episo
 ![](images/rings.jpg)
 
 ![](images/missing.jpg)
+
+The **Settings** menu (top right) gathers the display options:
+- **Show logos / Show square art**: logos (`logo.png`) and square art (`square.png`) are optional, so they are hidden by default. Switching them on adds an `L` / `Q` chip to every card, an extra entry in the "Art Type" list of the image picker, two more rings on the dashboard, a filter, and columns in the exports. The choice is kept in your browser; everything is scanned either way, so no new check is needed (apart from one **Update** after upgrading).
+- Light / dark mode, and **Log out** when a password is set.
+
+Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click **Ignore** on the library's card. It stays visible, greyed out, and you can still open it; **Include** counts it again. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.
 
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 

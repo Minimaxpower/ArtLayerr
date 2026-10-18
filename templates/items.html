@@ -1,12 +1,17 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  {# ——— Status chip: P poster, B background, S season posters, E episode images ——— #}
+  {# ——— Status chips. The item's own images (P poster, B background, L logo, Q square art)
+        form one block; S|E (season posters | episode images) a second one under it ——— #}
   <style>
-    .status-chip { font-size: .68rem; line-height: 1.15rem; padding: 0 .45rem; font-weight: 600; letter-spacing: 0; }
+    .chip-group { display: inline-flex; gap: 1px; border-radius: 999px; overflow: hidden; max-width: 100%; }
+    .chip-cell { font-size: .68rem; line-height: 1.15rem; padding: 0 .5rem; font-weight: 600; letter-spacing: 0; white-space: nowrap; text-align: center; min-width: 1.6rem; }
   </style>
-  {% macro chip(label, state, tip) %}
-    <span class="badge rounded-pill status-chip {{ {'ok': 'bg-success', 'part': 'bg-info text-dark', 'no': 'bg-secondary', 'unk': 'bg-light text-dark'}[state] }}" title="{{ tip }}">{{ label }}</span>
+  {% macro cell(label, state, tip) %}
+    <span class="chip-cell {{ {'ok': 'bg-success text-white', 'part': 'bg-info text-dark', 'no': 'bg-secondary text-white', 'unk': 'bg-light text-dark'}[state] }}" title="{{ tip }}">{{ label }}</span>
+  {% endmacro %}
+  {% macro flag(label, value, name) %}
+    {{ cell(label, 'unk' if value is none else ('ok' if value else 'no'), name ~ (': not checked yet' if value is none else (': present' if value else ': missing'))) }}
   {% endmacro %}
 
   {# ——— Reusable pagination (compact at the top, full at the bottom) ——— #}
@@ -79,7 +84,7 @@
         <div class="btn-group btn-group-sm">
           <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export what is missing in this library">⬇ Export</button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'season': 'season posters', 'episode': 'episode images'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
+            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square art', 'season': 'season posters', 'episode': 'episode images'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
             <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='csv') }}">CSV (spreadsheet)</a></li>
             <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='txt') }}">Text list</a></li>
           </ul>
@@ -92,7 +97,7 @@
     </div>
   </div>
 
-  {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'season': 'Seasons', 'episode': 'Episodes'} %}
+  {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'logo': 'Logos', 'square': 'Square art', 'season': 'Seasons', 'episode': 'Episodes'} %}
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     {% if checked %}
       <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em;">Missing</span>
@@ -130,6 +135,12 @@
       <noscript><button type="submit" class="btn btn-sm btn-secondary">Apply</button></noscript>
     </form>
   </div>
+
+  {% if art_pending %}
+    <div class="alert alert-secondary">
+      Logos / square art are switched on, but they have not been scanned yet — click “Update” to see them.
+    </div>
+  {% endif %}
 
   {% if not checked %}
     <div class="alert alert-secondary">
@@ -171,38 +182,44 @@
                              missing_type=missing_type if missing_type else none) }}"
            class="text-decoration-none">
           <div class="card poster-card h-100 position-relative">
-            <div class="position-absolute d-flex flex-wrap justify-content-end gap-1" style="z-index: 2; top: 8px; right: 8px; max-width: 68%;">
-              {{ chip('P', 'unk' if item.has_poster is none else ('ok' if item.has_poster else 'no'),
-                      'Poster' ~ (': not checked yet' if item.has_poster is none else (': present' if item.has_poster else ': missing'))) }}
-              {{ chip('B', 'unk' if item.has_background is none else ('ok' if item.has_background else 'no'),
-                      'Background' ~ (': not checked yet' if item.has_background is none else (': present' if item.has_background else ': missing'))) }}
+            <div class="position-absolute d-flex flex-column align-items-end gap-1" style="z-index: 2; top: 8px; right: 8px; max-width: 92%;">
+              <div class="chip-group">
+                {{ flag('P', item.has_poster, 'Poster') }}
+                {{ flag('B', item.has_background, 'Background') }}
+                {% if show_logo %}{{ flag('L', item.has_logo, 'Logo') }}{% endif %}
+                {% if show_square %}{{ flag('Q', item.has_square, 'Square art') }}{% endif %}
+              </div>
               {% if section.type == 'show' %}
                 {% set s_total = item.childCount or 0 %}
                 {% set e_total = item.leafCount or 0 %}
                 {% if item.custom_seasons is none %}
-                  {{ chip('S', 'unk', 'Season posters: not checked yet') }}
+                  {% set s_label, s_state, s_tip = 'S', 'unk', 'Season posters: not checked yet' %}
                 {% else %}
                   {% set s_done = item.custom_seasons|length %}
                   {% if s_done == 0 %}
-                    {{ chip('S', 'no', 'Season posters: none' ~ (' (of ' ~ s_total ~ ')' if s_total else '')) }}
+                    {% set s_label, s_state, s_tip = 'S', 'no', 'Season posters: none' ~ (' (of ' ~ s_total ~ ')' if s_total else '') %}
                   {% elif item.seasons_complete or not s_total %}
-                    {{ chip('S' ~ s_done, 'ok' if item.seasons_complete else 'part', 'Season posters: ' ~ s_done ~ (' of ' ~ s_total if s_total else '')) }}
+                    {% set s_label, s_state, s_tip = 'S' ~ s_done, ('ok' if item.seasons_complete else 'part'), 'Season posters: ' ~ s_done ~ (' of ' ~ s_total if s_total else '') %}
                   {% else %}
-                    {{ chip('S ' ~ s_done ~ '/' ~ s_total, 'part', 'Season posters: ' ~ s_done ~ ' of ' ~ s_total) }}
+                    {% set s_label, s_state, s_tip = 'S ' ~ s_done ~ '/' ~ s_total, 'part', 'Season posters: ' ~ s_done ~ ' of ' ~ s_total %}
                   {% endif %}
                 {% endif %}
                 {% if item.custom_episode_count is none %}
-                  {{ chip('E', 'unk', 'Episode images: not checked yet') }}
+                  {% set e_label, e_state, e_tip = 'E', 'unk', 'Episode images: not checked yet' %}
                 {% else %}
                   {% set e_done = item.custom_episode_count %}
                   {% if e_done == 0 %}
-                    {{ chip('E', 'no', 'Episode images: none' ~ (' (of ' ~ e_total ~ ')' if e_total else '')) }}
+                    {% set e_label, e_state, e_tip = 'E', 'no', 'Episode images: none' ~ (' (of ' ~ e_total ~ ')' if e_total else '') %}
                   {% elif item.episodes_complete or not e_total %}
-                    {{ chip('E' ~ e_done, 'ok' if item.episodes_complete else 'part', 'Episode images: ' ~ e_done ~ (' of ' ~ e_total if e_total else '')) }}
+                    {% set e_label, e_state, e_tip = 'E' ~ e_done, ('ok' if item.episodes_complete else 'part'), 'Episode images: ' ~ e_done ~ (' of ' ~ e_total if e_total else '') %}
                   {% else %}
-                    {{ chip('E ' ~ e_done ~ '/' ~ e_total, 'part', 'Episode images: ' ~ e_done ~ ' of ' ~ e_total) }}
+                    {% set e_label, e_state, e_tip = 'E ' ~ e_done ~ '/' ~ e_total, 'part', 'Episode images: ' ~ e_done ~ ' of ' ~ e_total %}
                   {% endif %}
                 {% endif %}
+                <div class="chip-group">
+                  {{ cell(s_label, s_state, s_tip) }}
+                  {{ cell(e_label, e_state, e_tip) }}
+                </div>
               {% endif %}
             </div>
             {% if item.thumb %}
