@@ -3,7 +3,8 @@
 <style>
   .lib-ignored { border-style: dashed; }
   .lib-ignored .lib-body { opacity: .5; }
-  .lib-bars .progress:last-child { margin-bottom: 0 !important; }
+  .lib-col .progress:last-child { margin-bottom: 0 !important; }
+  .lib-title { min-width: 0; overflow-wrap: anywhere; }
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">Dashboard</h2>
@@ -40,39 +41,62 @@
 {% set show_libs = library_stats|selectattr('type', 'equalto', 'show')|list %}
 {% set movie_mid = (movie_libs|length + 1) // 2 %}
 
-{% macro bar(label, done, total, color) %}
+{# label on the left, count on the right: narrow enough for two bars side by side #}
+{% macro bar(label, done, total, color, full=none) %}
   {% set pct = (done / total * 100) if total else 0 %}
-  <div class="small text-muted mb-1">{{ label }} — {{ done }}/{{ total }}</div>
+  <div class="d-flex justify-content-between small text-muted mb-1" title="{{ full or label }} — {{ done }}/{{ total }}">
+    <span class="text-truncate me-1">{{ label }}</span><span class="text-nowrap">{{ done }}/{{ total }}</span>
+  </div>
   <div class="progress mb-3" style="height: 6px;">
     <div class="progress-bar" role="progressbar" style="width: {{ pct }}%; background-color: {{ color }};"></div>
   </div>
 {% endmacro %}
 
 {# One card per library. The whole card opens the library (stretched link); the
-   Ignore / Include button sits above that link and only toggles the totals. #}
+   eye button sits above that link and only toggles whether the library counts
+   in the totals (open eye = counted, closed eye = ignored). #}
 {% macro lib_card(lib) %}
   {% set ignored = lib.key|string in ignored_keys %}
+  {% set show_l = show_logo and art_scanned %}
+  {% set show_q = show_square and art_scanned %}
+  {# two columns. Movies: posters, backgrounds | logos, square art.
+     Shows: posters, backgrounds, logos | square art, seasons, episodes #}
+  {% set left = [('Posters', lib.poster_done, lib.total, 'var(--accent)'), ('Backgrounds', lib.bg_done, lib.total, '#3aa0c4')] %}
+  {% set right = [] %}
+  {% if lib.type == 'show' %}
+    {% if show_l %}{% set left = left + [('Logos', lib.logo_done or 0, lib.total, '#e8a33d')] %}{% endif %}
+    {% if show_q %}{% set right = right + [('Square art', lib.square_done or 0, lib.total, '#4cb782')] %}{% endif %}
+    {% set right = right + [('Seasons', lib.season_done, lib.season_total, '#8e6ff0'), ('Episodes', lib.episode_done, lib.episode_total, '#e85d9e')] %}
+  {% else %}
+    {% if show_l %}{% set right = right + [('Logos', lib.logo_done or 0, lib.total, '#e8a33d')] %}{% endif %}
+    {% if show_q %}{% set right = right + [('Square art', lib.square_done or 0, lib.total, '#4cb782')] %}{% endif %}
+  {% endif %}
   <div class="card p-3 library-card position-relative mb-3{% if ignored %} lib-ignored{% endif %}">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <a href="{{ url_for('list_items', section_key=lib.key) }}" class="stretched-link text-decoration-none text-body lib-body"><strong>{{ lib.title }}</strong></a>
-      <div class="d-flex align-items-center gap-2 position-relative" style="z-index: 2;">
-        {% if ignored %}<span class="badge bg-warning text-dark">Ignored</span>{% endif %}
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+      <a href="{{ url_for('list_items', section_key=lib.key) }}" class="stretched-link text-decoration-none text-body lib-body lib-title"><strong>{{ lib.title }}</strong></a>
+      <div class="d-flex align-items-center gap-2 position-relative flex-shrink-0" style="z-index: 2;">
         <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
         <form method="post" action="{{ url_for('toggle_ignore_library', section_key=lib.key) }}" class="m-0">
-          <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: .7rem;"
-                  title="{% if ignored %}Count this library in the totals again{% else %}Leave this library out of the totals{% endif %}">{{ 'Include' if ignored else 'Ignore' }}</button>
+          <button type="submit" data-state="{{ 'ignored' if ignored else 'included' }}"
+                  class="btn btn-sm py-0 px-1 d-inline-flex align-items-center {{ 'btn-warning' if ignored else 'btn-outline-secondary' }}"
+                  title="{% if ignored %}Ignored in the totals — click to count it again{% else %}Counted in the totals — click to ignore it{% endif %}"
+                  aria-label="{% if ignored %}Ignored in the totals, click to count it again{% else %}Counted in the totals, click to ignore it{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              {% if ignored %}
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+              {% else %}
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              {% endif %}
+            </svg>
+          </button>
         </form>
       </div>
     </div>
-    <div class="lib-body lib-bars">
-      {{ bar('Posters', lib.poster_done, lib.total, 'var(--accent)') }}
-      {{ bar('Backgrounds', lib.bg_done, lib.total, '#3aa0c4') }}
-      {% if show_logo and art_scanned %}{{ bar('Logos', lib.logo_done or 0, lib.total, '#e8a33d') }}{% endif %}
-      {% if show_square and art_scanned %}{{ bar('Square art', lib.square_done or 0, lib.total, '#4cb782') }}{% endif %}
-      {% if lib.type == 'show' %}
-        {{ bar('Season posters', lib.season_done, lib.season_total, '#8e6ff0') }}
-        {{ bar('Episode Images', lib.episode_done, lib.episode_total, '#e85d9e') }}
-      {% endif %}
+    <div class="lib-body">
+      <div class="row gx-3">
+        <div class="{{ 'col-6' if right else 'col-12' }} lib-col">{% for b in left %}{{ bar(*b) }}{% endfor %}</div>
+        {% if right %}<div class="col-6 lib-col">{% for b in right %}{{ bar(*b) }}{% endfor %}</div>{% endif %}
+      </div>
     </div>
   </div>
 {% endmacro %}
@@ -116,9 +140,9 @@
     {% endif %}
     <div class="row row-cols-2 g-2">
       {{ ring('Posters', 'poster', totals.poster_done, totals.poster_total, none) }}
-      {{ ring('Season posters', 'season', totals.season_done, totals.season_total, '#8e6ff0') }}
+      {{ ring('Seasons', 'season', totals.season_done, totals.season_total, '#8e6ff0') }}
       {{ ring('Backgrounds', 'background', totals.bg_done, totals.bg_total, '#3aa0c4') }}
-      {{ ring('Episode images', 'episode', totals.episode_done, totals.episode_total, '#e85d9e') }}
+      {{ ring('Episodes', 'episode', totals.episode_done, totals.episode_total, '#e85d9e') }}
       {% if show_logo and art_scanned %}{{ ring('Logos', 'logo', totals.logo_done, totals.logo_total, '#e8a33d') }}{% endif %}
       {% if show_square and art_scanned %}{{ ring('Square art', 'square', totals.square_done, totals.square_total, '#4cb782') }}{% endif %}
     </div>

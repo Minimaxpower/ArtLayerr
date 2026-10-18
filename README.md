@@ -124,16 +124,16 @@ Clicking the title/logo in the upper left takes you back to the libraries dashbo
 Clicking the library name brings you back to the items list of that library.
 
 In a Show library, you'll see a grid displaying all the shows of that library.
-You also get a visual indication of whether a show already has a poster/background/season poster/episode image selected in the Kometa assets directory
+You also get a visual indication of whether a show already has a poster/background/seasons/episodes selected in the Kometa assets directory
 
 ![](images/shows-list.jpg)
 
-You can also search by name, or only filter by shows missing a poster/background/poster season/episode image:
+You can also search by name, or only filter by shows missing a poster/background/seasons/episodes:
 Green indicates you have everything (for example all seasons and all episodes). Blue indicates that you're missing some. A good way to keep visual track of what is incomplete!
 
 ![](images/shows-filters.jpg)
 
-Each card carries colored chips: `P` poster, `B` background, `L` logo and `Q` square art (these two only when switched on, see below), then `S` season posters and `E` episode images for shows. Green means complete, blue partial (for example `S 3/5`), gray missing, and light gray not checked yet. Hover a chip for the detail.
+Each card carries colored chips: `P` poster, `B` background, `L` logo and `Q` square art (these two only when switched on, see below), then `S` seasons (season posters) and `E` episodes (episode images) for shows. Green means complete, blue partial (for example `S 3/5`), gray missing, and light gray not checked yet. Hover a chip for the detail.
 
 If you click on a show, you'll get the same kind of grid as for movies:
 
@@ -143,7 +143,7 @@ With more options, as you can also access seasons:
 
 ![](images/seasons-posters.jpg)
 
-And episode images:
+And episodes:
 
 ![](images/episodes-posters.jpg)
 
@@ -153,7 +153,7 @@ You can also select multiple images and compare them :
 
 Once a check has been run, the **Export** button (on the dashboard, and on each library's list) downloads what is missing as a CSV file (one row per item, with TMDB/TVDB/IMDB ids and the asset folder name) or as a plain text list. On a library's list it exports the whole library for the current filter; on the dashboard it exports every library.
 
-The four rings on Library Dashboard (posters, season posters, backgrounds, episode images) are now links to what is missing. If only one library concerned: opens its filtered list directly; several: a small picker.
+The four rings on Library Dashboard (posters, seasons, backgrounds, episodes) are now links to what is missing. If only one library concerned: opens its filtered list directly; several: a small picker.
 
 ![](images/rings.jpg)
 
@@ -163,7 +163,7 @@ The **Settings** menu (top right) gathers the display options:
 - **Show logos / Show square art**: logos (`logo.png`) and square art (`square.png`) are optional, so they are hidden by default. Switching them on adds an `L` / `Q` chip to every card, an extra entry in the "Art Type" list of the image picker, two more rings on the dashboard, a filter, and columns in the exports. The choice is kept in your browser; everything is scanned either way, so no new check is needed (apart from one **Update** after upgrading).
 - Light / dark mode, and **Log out** when a password is set.
 
-Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click **Ignore** on the library's card. It stays visible, greyed out, and you can still open it; **Include** counts it again. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.
+Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click the eye icon on the library's card (open eye = counted, crossed-out eye = ignored). It stays visible, greyed out, and you can still open it; click the eye again to count it. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.
 
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 

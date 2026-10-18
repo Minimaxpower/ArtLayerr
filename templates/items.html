@@ -2,7 +2,7 @@
 
 {% block content %}
   {# ——— Status chips. The item's own images (P poster, B background, L logo, Q square art)
-        form one block; S|E (season posters | episode images) a second one under it ——— #}
+        form one block; S|E (seasons | episodes) a second one under it ——— #}
   <style>
     .chip-group { display: inline-flex; gap: 1px; border-radius: 999px; overflow: hidden; max-width: 100%; }
     .chip-cell { font-size: .68rem; line-height: 1.15rem; padding: 0 .5rem; font-weight: 600; letter-spacing: 0; white-space: nowrap; text-align: center; min-width: 1.6rem; }
@@ -84,7 +84,7 @@
         <div class="btn-group btn-group-sm">
           <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export what is missing in this library">⬇ Export</button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square art', 'season': 'season posters', 'episode': 'episode images'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
+            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square art', 'season': 'seasons', 'episode': 'episodes'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
             <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='csv') }}">CSV (spreadsheet)</a></li>
             <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='txt') }}">Text list</a></li>
           </ul>
@@ -193,27 +193,27 @@
                 {% set s_total = item.childCount or 0 %}
                 {% set e_total = item.leafCount or 0 %}
                 {% if item.custom_seasons is none %}
-                  {% set s_label, s_state, s_tip = 'S', 'unk', 'Season posters: not checked yet' %}
+                  {% set s_label, s_state, s_tip = 'S', 'unk', 'Seasons: not checked yet' %}
                 {% else %}
                   {% set s_done = item.custom_seasons|length %}
                   {% if s_done == 0 %}
-                    {% set s_label, s_state, s_tip = 'S', 'no', 'Season posters: none' ~ (' (of ' ~ s_total ~ ')' if s_total else '') %}
+                    {% set s_label, s_state, s_tip = 'S', 'no', 'Seasons: none' ~ (' (of ' ~ s_total ~ ')' if s_total else '') %}
                   {% elif item.seasons_complete or not s_total %}
-                    {% set s_label, s_state, s_tip = 'S' ~ s_done, ('ok' if item.seasons_complete else 'part'), 'Season posters: ' ~ s_done ~ (' of ' ~ s_total if s_total else '') %}
+                    {% set s_label, s_state, s_tip = 'S' ~ s_done, ('ok' if item.seasons_complete else 'part'), 'Seasons: ' ~ s_done ~ (' of ' ~ s_total if s_total else '') %}
                   {% else %}
-                    {% set s_label, s_state, s_tip = 'S ' ~ s_done ~ '/' ~ s_total, 'part', 'Season posters: ' ~ s_done ~ ' of ' ~ s_total %}
+                    {% set s_label, s_state, s_tip = 'S ' ~ s_done ~ '/' ~ s_total, 'part', 'Seasons: ' ~ s_done ~ ' of ' ~ s_total %}
                   {% endif %}
                 {% endif %}
                 {% if item.custom_episode_count is none %}
-                  {% set e_label, e_state, e_tip = 'E', 'unk', 'Episode images: not checked yet' %}
+                  {% set e_label, e_state, e_tip = 'E', 'unk', 'Episodes: not checked yet' %}
                 {% else %}
                   {% set e_done = item.custom_episode_count %}
                   {% if e_done == 0 %}
-                    {% set e_label, e_state, e_tip = 'E', 'no', 'Episode images: none' ~ (' (of ' ~ e_total ~ ')' if e_total else '') %}
+                    {% set e_label, e_state, e_tip = 'E', 'no', 'Episodes: none' ~ (' (of ' ~ e_total ~ ')' if e_total else '') %}
                   {% elif item.episodes_complete or not e_total %}
-                    {% set e_label, e_state, e_tip = 'E' ~ e_done, ('ok' if item.episodes_complete else 'part'), 'Episode images: ' ~ e_done ~ (' of ' ~ e_total if e_total else '') %}
+                    {% set e_label, e_state, e_tip = 'E' ~ e_done, ('ok' if item.episodes_complete else 'part'), 'Episodes: ' ~ e_done ~ (' of ' ~ e_total if e_total else '') %}
                   {% else %}
-                    {% set e_label, e_state, e_tip = 'E ' ~ e_done ~ '/' ~ e_total, 'part', 'Episode images: ' ~ e_done ~ ' of ' ~ e_total %}
+                    {% set e_label, e_state, e_tip = 'E ' ~ e_done ~ '/' ~ e_total, 'part', 'Episodes: ' ~ e_done ~ ' of ' ~ e_total %}
                   {% endif %}
                 {% endif %}
                 <div class="chip-group">

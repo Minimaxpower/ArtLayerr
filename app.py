@@ -505,12 +505,12 @@ _MISSING_CACHE = {}
 
 # which attribute each filter type checks, and whether it's show-only
 MISSING_TYPES = {
-    "poster": {"label": "poster", "show_only": False},
-    "background": {"label": "background", "show_only": False},
-    "logo": {"label": "logo", "show_only": False},
+    "poster": {"label": "posters", "show_only": False},
+    "background": {"label": "backgrounds", "show_only": False},
+    "logo": {"label": "logos", "show_only": False},
     "square": {"label": "square art", "show_only": False},
-    "season": {"label": "season poster", "show_only": True},
-    "episode": {"label": "episode image", "show_only": True},
+    "season": {"label": "seasons", "show_only": True},
+    "episode": {"label": "episodes", "show_only": True},
 }
 
 
@@ -1203,8 +1203,8 @@ MISSING_UNITS = {
     "background": "backgrounds",
     "logo": "logos",
     "square": "square art",
-    "season": "season posters",
-    "episode": "episode images",
+    "season": "seasons",
+    "episode": "episodes",
 }
 
 
@@ -1839,7 +1839,7 @@ def browse(section_key):
         pages = len(missing_keys)
         if not pages:
             label = MISSING_TYPES[missing_type]["label"]
-            flash(f"All items already have a {label} \u2014 filter removed.")
+            flash(f"No {label} missing \u2014 filter removed.")
             return redirect(
                 url_for("list_items", section_key=section.key, missing_type=missing_type)
             )
