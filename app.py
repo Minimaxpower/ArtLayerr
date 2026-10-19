@@ -163,6 +163,16 @@ ART_TYPES = ("poster", "background", "logo", "square")
 ART_EXTRAS = ("logo", "square")
 
 
+# Accessibility prefs (cookies too): colorblind palette + extra visual cues.
+CB_MODES = ("off", "rg", "by")  # default, red-green, blue-yellow
+CUE_MODES = ("none", "icons", "patterns")
+
+
+def _pref_choice(name, allowed, default):
+    value = request.cookies.get(f"artlayerr_{name}")
+    return value if value in allowed else default
+
+
 def enabled_art_types():
     return [t for t in ART_EXTRAS if request.cookies.get(f"artlayerr_show_{t}") == "1"]
 
@@ -180,6 +190,8 @@ def inject_art_prefs():
     return {
         "show_logo": "logo" in enabled,
         "show_square": "square" in enabled,
+        "cb_mode": _pref_choice("cb", CB_MODES, "off"),
+        "cue_mode": _pref_choice("cue", CUE_MODES, "none"),
         "art_scanned": scanned,
         # switched on, but the saved scan predates logo/square support: one Update fixes it
         "art_pending": bool(enabled) and checked and not scanned,
@@ -193,6 +205,16 @@ def save_settings():
         resp.set_cookie(
             f"artlayerr_show_{kind}",
             "1" if request.form.get(f"show_{kind}") else "0",
+            max_age=PREF_COOKIE_MAX_AGE,
+            samesite="Lax",
+        )
+    for name, allowed, default in (("cb", CB_MODES, "off"), ("cue", CUE_MODES, "none")):
+        value = request.form.get(name)
+        if value not in allowed:
+            value = default
+        resp.set_cookie(
+            f"artlayerr_{name}",
+            value,
             max_age=PREF_COOKIE_MAX_AGE,
             samesite="Lax",
         )

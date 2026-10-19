@@ -161,6 +161,8 @@ The four rings on Library Dashboard (posters, seasons, backgrounds, episodes) ar
 
 The **Settings** menu (top right) gathers the display options:
 - **Show logos / Show square art**: logos (`logo.png`) and square art (`square.png`) are optional, so they are hidden by default. Switching them on adds an `L` / `Q` chip to every card, an extra entry in the "Art Type" list of the image picker, two more rings on the dashboard, a filter, and columns in the exports. The choice is kept in your browser; everything is scanned either way, so no new check is needed (apart from one **Update** after upgrading).
+- **Color mode**: *Default*, *Red-green colorblind* (Okabe-Ito palette) or *Blue-yellow colorblind*. It changes the colors of the dashboard bars and rings and of the "complete / partial" chips and badges.
+- **Visual cues**: *None*, *Icons* (a small symbol per art type on the dashboard, and ✓ / ◐ / ✕ on the status chips) or *Patterns* (each art type gets its own hatching on the bars and rings, and partial / missing chips get a texture). Cues work with any color mode, so color is never the only signal. Like the other display options, both choices are kept in your browser.
 - Light / dark mode, and **Log out** when a password is set.
 
 Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click the eye icon on the library's card (open eye = counted, crossed-out eye = ignored). It stays visible, greyed out, and you can still open it; click the eye again to count it. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.

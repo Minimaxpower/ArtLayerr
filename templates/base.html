@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-bs-theme="light">
+<html lang="en" data-bs-theme="light" data-cb="{{ cb_mode }}" data-cue="{{ cue_mode }}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,7 +10,59 @@
       :root {
         --accent: #0d6efd;
         --accent-soft: rgba(13, 110, 253, .1);
+        /* One color per art type (dashboard bars and rings). The colorblind
+           modes below only swap these variables. */
+        --c-poster: var(--accent);
+        --c-background: #3aa0c4;
+        --c-logo: #f26a21;
+        --c-square: #4cb782;
+        --c-season: #8e6ff0;
+        --c-episode: #e85d9e;
       }
+      /* Red-green colorblind: Okabe-Ito palette */
+      html[data-cb="rg"] {
+        --c-poster: #E69F00;
+        --c-background: #56B4E9;
+        --c-logo: #CC79A7;
+        --c-square: #009E73;
+        --c-season: #0072B2;
+        --c-episode: #F0E442;
+        --st-ok: #0072B2;
+        --st-part: #E69F00;
+      }
+      /* Blue-yellow colorblind: red / cyan axis, told apart by lightness */
+      html[data-cb="by"] {
+        --c-poster: #e0474c;
+        --c-background: #1ec0d8;
+        --c-logo: #9f2335;
+        --c-square: #0a7e8c;
+        --c-season: #f4908f;
+        --c-episode: #7fdcea;
+        --st-ok: #0a7e8c;
+        --st-part: #f4908f;
+      }
+      /* "complete" / "partial" status colors (chips, badges) */
+      html[data-cb]:not([data-cb="off"]) .bg-success { background-color: var(--st-ok) !important; color: #fff !important; }
+      html[data-cb]:not([data-cb="off"]) .bg-info { background-color: var(--st-part) !important; color: #111 !important; }
+
+      /* Visual cues, independent from the colors: icons or patterns */
+      .cue-ic { display: none; margin-right: .25em; }
+      html[data-cue="icons"] .cue-ic { display: inline; }
+      .k-poster { --pat: repeating-linear-gradient(45deg, rgba(0,0,0,.4) 0 2px, transparent 2px 6px); --pat-size: auto; }
+      .k-background { --pat: repeating-linear-gradient(0deg, rgba(0,0,0,.4) 0 2px, transparent 2px 5px); --pat-size: auto; }
+      .k-logo { --pat: radial-gradient(rgba(0,0,0,.5) 1.3px, transparent 1.7px); --pat-size: 6px 6px; }
+      .k-square { --pat: linear-gradient(rgba(0,0,0,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.4) 1px, transparent 1px); --pat-size: 5px 5px; }
+      .k-season { --pat: repeating-linear-gradient(90deg, rgba(0,0,0,.4) 0 2px, transparent 2px 5px); --pat-size: auto; }
+      .k-episode { --pat: conic-gradient(rgba(0,0,0,.4) 25%, transparent 0 50%, rgba(0,0,0,.4) 0 75%, transparent 0); --pat-size: 6px 6px; }
+      html[data-cue="patterns"] .progress-bar.has-pat { background-image: var(--pat); background-size: var(--pat-size); }
+      html[data-cue="patterns"] .stat-ring.has-pat::before {
+        content: ""; position: absolute; inset: 0; border-radius: 50%;
+        background: var(--pat); background-size: var(--pat-size);
+        -webkit-mask: conic-gradient(#000 calc(var(--pct, 0) * 1%), transparent 0);
+        mask: conic-gradient(#000 calc(var(--pct, 0) * 1%), transparent 0);
+      }
+      html[data-cue="patterns"] .st-part { background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.3) 0 3px, transparent 3px 6px); }
+      html[data-cue="patterns"] .st-no { background-image: radial-gradient(rgba(255,255,255,.35) 1px, transparent 1.4px); background-size: 5px 5px; }
 
       .pagination { flex-wrap: wrap; }
 
@@ -58,6 +110,7 @@
 
       /* Dashboard: pure-CSS progress ring, no chart library needed */
       .stat-ring {
+        position: relative;
         width: 120px;
         height: 120px;
         border-radius: 50%;
@@ -67,6 +120,7 @@
         justify-content: center;
       }
       .stat-ring-inner {
+        position: relative;
         width: 92px;
         height: 92px;
         border-radius: 50%;
@@ -228,6 +282,19 @@
                     <input class="form-check-input" type="checkbox" role="switch" id="set-square" name="show_square" value="1" {% if show_square %}checked{% endif %} onchange="this.form.submit()">
                     <label class="form-check-label" for="set-square">Show square art <span class="text-muted">(Q)</span></label>
                   </div>
+                  <hr class="dropdown-divider mx-0 my-2">
+                  <label class="form-label small text-muted mb-1" for="set-cb">Color mode</label>
+                  <select class="form-select form-select-sm mb-2" id="set-cb" name="cb" onchange="this.form.submit()">
+                    <option value="off"{% if cb_mode == 'off' %} selected{% endif %}>Default</option>
+                    <option value="rg"{% if cb_mode == 'rg' %} selected{% endif %}>Red-green colorblind</option>
+                    <option value="by"{% if cb_mode == 'by' %} selected{% endif %}>Blue-yellow colorblind</option>
+                  </select>
+                  <label class="form-label small text-muted mb-1" for="set-cue">Visual cues</label>
+                  <select class="form-select form-select-sm" id="set-cue" name="cue" onchange="this.form.submit()">
+                    <option value="none"{% if cue_mode == 'none' %} selected{% endif %}>None</option>
+                    <option value="icons"{% if cue_mode == 'icons' %} selected{% endif %}>Icons</option>
+                    <option value="patterns"{% if cue_mode == 'patterns' %} selected{% endif %}>Patterns</option>
+                  </select>
                   <noscript><button type="submit" class="btn btn-sm btn-secondary mt-2">Apply</button></noscript>
                 </form>
               </li>

@@ -8,7 +8,7 @@
     .chip-cell { font-size: .68rem; line-height: 1.15rem; padding: 0 .5rem; font-weight: 600; letter-spacing: 0; white-space: nowrap; text-align: center; min-width: 1.6rem; }
   </style>
   {% macro cell(label, state, tip) %}
-    <span class="chip-cell {{ {'ok': 'bg-success text-white', 'part': 'bg-info text-dark', 'no': 'bg-secondary text-white', 'unk': 'bg-light text-dark'}[state] }}" title="{{ tip }}">{{ label }}</span>
+    <span class="chip-cell st-{{ state }} {{ {'ok': 'bg-success text-white', 'part': 'bg-info text-dark', 'no': 'bg-secondary text-white', 'unk': 'bg-light text-dark'}[state] }}" title="{{ tip }}"><span class="cue-ic" aria-hidden="true">{{ {'ok': '✓', 'part': '◐', 'no': '✕', 'unk': '?'}[state] }}</span>{{ label }}</span>
   {% endmacro %}
   {% macro flag(label, value, name) %}
     {{ cell(label, 'unk' if value is none else ('ok' if value else 'no'), name ~ (': not checked yet' if value is none else (': present' if value else ': missing'))) }}
