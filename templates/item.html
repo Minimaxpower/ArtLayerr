@@ -91,7 +91,7 @@
       <option value="poster" {% if art_type=='poster' %}selected{% endif %}>Poster</option>
       <option value="background" {% if art_type=='background' %}selected{% endif %}>Background</option>
       {% if show_logo or art_type == 'logo' %}<option value="logo" {% if art_type=='logo' %}selected{% endif %}>Logo</option>{% endif %}
-      {% if show_square or art_type == 'square' %}<option value="square" {% if art_type=='square' %}selected{% endif %}>Square art</option>{% endif %}
+      {% if show_square or art_type == 'square' %}<option value="square" {% if art_type=='square' %}selected{% endif %}>Square</option>{% endif %}
     </select>
   </form>
 </div>
@@ -179,7 +179,7 @@
 
 {% if total_art == 0 and art_type in ['logo', 'square'] %}
   <div class="alert alert-secondary">
-    Plex does not offer any {{ 'logo' if art_type == 'logo' else 'square art' }} for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below.
+    Plex does not offer any {{ 'logo' if art_type == 'logo' else 'square' }} image for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below.
   </div>
 {% endif %}
 

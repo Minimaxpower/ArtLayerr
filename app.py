@@ -535,7 +535,7 @@ MISSING_TYPES = {
     "poster": {"label": "posters", "show_only": False},
     "background": {"label": "backgrounds", "show_only": False},
     "logo": {"label": "logos", "show_only": False},
-    "square": {"label": "square art", "show_only": False},
+    "square": {"label": "square", "show_only": False},
     "season": {"label": "seasons", "show_only": True},
     "episode": {"label": "episodes", "show_only": True},
 }
@@ -1234,7 +1234,7 @@ MISSING_UNITS = {
     "poster": "posters",
     "background": "backgrounds",
     "logo": "logos",
-    "square": "square art",
+    "square": "square",
     "season": "seasons",
     "episode": "episodes",
 }
@@ -1283,7 +1283,7 @@ EXPORT_MISSING_NAMES = {
     "poster": "poster",
     "background": "background",
     "logo": "logo",
-    "square": "square art",
+    "square": "square",
     "season": "seasons",
     "episode": "episodes",
 }

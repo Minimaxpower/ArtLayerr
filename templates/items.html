@@ -84,7 +84,7 @@
         <div class="btn-group btn-group-sm">
           <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export what is missing in this library">⬇ Export</button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square art', 'season': 'seasons', 'episode': 'episodes'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
+            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square', 'season': 'seasons', 'episode': 'episodes'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
             <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='csv') }}">CSV (spreadsheet)</a></li>
             <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='txt') }}">Text list</a></li>
           </ul>
@@ -97,7 +97,7 @@
     </div>
   </div>
 
-  {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'logo': 'Logos', 'square': 'Square art', 'season': 'Seasons', 'episode': 'Episodes'} %}
+  {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'logo': 'Logos', 'square': 'Square', 'season': 'Seasons', 'episode': 'Episodes'} %}
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     {% if checked %}
       <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em;">Missing</span>
@@ -138,7 +138,7 @@
 
   {% if art_pending %}
     <div class="alert alert-secondary">
-      Logos / square art are switched on, but they have not been scanned yet — click “Update” to see them.
+      Logos / square are switched on, but they have not been scanned yet — click “Update” to see them.
     </div>
   {% endif %}
 
@@ -188,7 +188,7 @@
                 {{ flag('P', item.has_poster, 'Poster') }}
                 {{ flag('B', item.has_background, 'Background') }}
                 {% if show_logo %}{{ flag('L', item.has_logo, 'Logo') }}{% endif %}
-                {% if show_square %}{{ flag('Q', item.has_square, 'Square art') }}{% endif %}
+                {% if show_square %}{{ flag('Q', item.has_square, 'Square') }}{% endif %}
               </div>
               {% if section.type == 'show' %}
                 {% set s_total = item.childCount or 0 %}

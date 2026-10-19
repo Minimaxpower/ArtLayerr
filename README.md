@@ -3,7 +3,7 @@
 > **Renamed:** ArtLayerr was previously called Layerr. If you installed the old image
 > (`ghcr.io/minimaxpower/layerr`), switch to `ghcr.io/minimaxpower/artlayerr`: the old one no longer receives updates.
 
-A web UI that lets you scroll through the images that Plex provides for each item (movie, show, season, episode, background, logo, square art) and pick the one you want with a single click.
+A web UI that lets you scroll through the images that Plex provides for each item (movie, show, season, episode, background, logo, square) and pick the one you want with a single click.
 
 When you click on an image, it is downloaded to a dedicated `assets` directory with the correct pathing and naming for Kometa.
 
@@ -133,7 +133,7 @@ Green indicates you have everything (for example all seasons and all episodes). 
 
 ![](images/shows-filters.jpg)
 
-Each card carries colored chips: `P` poster, `B` background, `L` logo and `Q` square art (these two only when switched on, see below), then `S` seasons (season posters) and `E` episodes (episode images) for shows. Green means complete, blue partial (for example `S 3/5`), gray missing, and light gray not checked yet. Hover a chip for the detail.
+Each card carries colored chips: `P` poster, `B` background, `L` logo and `Q` square (these two only when switched on, see below), then `S` seasons (season posters) and `E` episodes (episode images) for shows. Green means complete, blue partial (for example `S 3/5`), gray missing, and light gray not checked yet. Hover a chip for the detail.
 
 If you click on a show, you'll get the same kind of grid as for movies:
 
@@ -160,7 +160,7 @@ The four rings on Library Dashboard (posters, seasons, backgrounds, episodes) ar
 ![](images/missing.jpg)
 
 The **Settings** menu (top right) gathers the display options:
-- **Show logos / Show square art**: logos (`logo.png`) and square art (`square.png`) are optional, so they are hidden by default. Switching them on adds an `L` / `Q` chip to every card, an extra entry in the "Art Type" list of the image picker, two more rings on the dashboard, a filter, and columns in the exports. The choice is kept in your browser; everything is scanned either way, so no new check is needed (apart from one **Update** after upgrading).
+- **Show logos / Show square**: logos (`logo.png`) and square (`square.png`) are optional, so they are hidden by default. Switching them on adds an `L` / `Q` chip to every card, an extra entry in the "Art Type" list of the image picker, two more rings on the dashboard, a filter, and columns in the exports. The choice is kept in your browser; everything is scanned either way, so no new check is needed (apart from one **Update** after upgrading).
 - **Color mode**: *Default*, *Red-green colorblind* (Okabe-Ito palette) or *Blue-yellow colorblind*. It changes the colors of the dashboard bars and rings and of the "complete / partial" chips and badges.
 - **Visual cues**: *None*, *Icons* (a small symbol per art type on the dashboard, and ✓ / ◐ / ✕ on the status chips) or *Patterns* (each art type gets its own hatching on the bars and rings, and partial / missing chips get a texture). Cues work with any color mode, so color is never the only signal. Like the other display options, both choices are kept in your browser.
 - Light / dark mode, and **Log out** when a password is set.

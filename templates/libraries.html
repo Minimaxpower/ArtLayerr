@@ -33,7 +33,7 @@
 {% endif %}
 {% if art_pending %}
   <div class="alert alert-secondary">
-    Logos / square art are switched on, but they have not been counted yet — click “Update”.
+    Logos / square are switched on, but they have not been counted yet — click “Update”.
   </div>
 {% endif %}
 
@@ -67,11 +67,11 @@
   {% set right = [] %}
   {% if lib.type == 'show' %}
     {% if show_l %}{% set left = left + [('Logos', lib.logo_done or 0, lib.total, 'logo')] %}{% endif %}
-    {% if show_q %}{% set right = right + [('Square art', lib.square_done or 0, lib.total, 'square')] %}{% endif %}
+    {% if show_q %}{% set right = right + [('Square', lib.square_done or 0, lib.total, 'square')] %}{% endif %}
     {% set right = right + [('Seasons', lib.season_done, lib.season_total, 'season'), ('Episodes', lib.episode_done, lib.episode_total, 'episode')] %}
   {% else %}
     {% if show_l %}{% set right = right + [('Logos', lib.logo_done or 0, lib.total, 'logo')] %}{% endif %}
-    {% if show_q %}{% set right = right + [('Square art', lib.square_done or 0, lib.total, 'square')] %}{% endif %}
+    {% if show_q %}{% set right = right + [('Square', lib.square_done or 0, lib.total, 'square')] %}{% endif %}
   {% endif %}
   <div class="card p-3 library-card position-relative mb-3{% if ignored %} lib-ignored{% endif %}">
     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
@@ -106,10 +106,10 @@
 {% macro ring(title, mtype, done, total) %}
   {% set pct = ((done / total * 100) | round(0) | int) if total else 0 %}
   <div class="col">
-    <a href="{{ url_for('missing_overview', missing_type=mtype) }}" class="card h-100 p-2 text-center text-decoration-none text-body library-card" title="{{ title }}: {{ done }} done, {{ total - done }} missing, {{ total }} total">
-      <div class="text-uppercase small text-muted mb-1 text-truncate" style="letter-spacing: .05em; font-size: .7rem;">{{ ic(mtype) }}{{ title }}</div>
-      <div class="stat-ring has-pat k-{{ mtype }} mx-auto" style="--pct: {{ pct }}; --ring-color: var(--c-{{ mtype }}); width: 64px; height: 64px;">
-        <div class="stat-ring-inner" style="width: 48px; height: 48px;">
+    <a href="{{ url_for('missing_overview', missing_type=mtype) }}" class="card h-100 px-1 py-2 text-center text-decoration-none text-body library-card" title="{{ title }}: {{ done }} done, {{ total - done }} missing, {{ total }} total">
+      <div class="text-uppercase text-muted mb-1" style="letter-spacing: .02em; font-size: .65rem; white-space: nowrap;">{{ ic(mtype) }}{{ title }}</div>
+      <div class="stat-ring has-pat k-{{ mtype }} mx-auto" style="--pct: {{ pct }}; --ring-color: var(--c-{{ mtype }}); width: 72px; height: 72px;">
+        <div class="stat-ring-inner" style="width: 54px; height: 54px;">
           <div class="fw-bold small">{{ pct }}%</div>
         </div>
       </div>
@@ -133,13 +133,13 @@
   </div>
 
   <div class="col-lg-3">
-    <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-2 row-cols-xxl-3 g-2">
+    <div class="row row-cols-2 g-2">
       {{ ring('Posters', 'poster', totals.poster_done, totals.poster_total) }}
       {{ ring('Seasons', 'season', totals.season_done, totals.season_total) }}
       {{ ring('Backgrounds', 'background', totals.bg_done, totals.bg_total) }}
       {{ ring('Episodes', 'episode', totals.episode_done, totals.episode_total) }}
       {% if show_logo and art_scanned %}{{ ring('Logos', 'logo', totals.logo_done, totals.logo_total) }}{% endif %}
-      {% if show_square and art_scanned %}{{ ring('Square art', 'square', totals.square_done, totals.square_total) }}{% endif %}
+      {% if show_square and art_scanned %}{{ ring('Square', 'square', totals.square_done, totals.square_total) }}{% endif %}
     </div>
     {% if ignored_count %}
       <div class="small text-muted text-center mt-3">Totals leave out {{ ignored_count }} ignored {{ 'library' if ignored_count == 1 else 'libraries' }}.</div>
