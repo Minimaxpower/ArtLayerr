@@ -18,9 +18,9 @@
   {% endmacro %}
 
   {# ——— Where the poster lives: on Plex only, in /assets (not applied yet), or both ——— #}
-  {% macro src_badge(state, tip) %}
-    {% set cls = {'plex': 'bg-secondary text-white st-no', 'assets': 'bg-warning text-dark st-part', 'both': 'bg-success text-white st-ok'}[state] %}
-    <span class="badge rounded-pill flex-shrink-0 {{ cls }}" style="font-size: .62rem;" title="{{ tip }}"><span class="cue-ic" aria-hidden="true">{{ {'plex': '–', 'assets': '◐', 'both': '✓'}[state] }}</span>{{ {'plex': 'Plex', 'assets': 'Assets', 'both': 'Both'}[state] }}</span>
+  {% macro src_badge(state, tip, rk=none) %}
+    {% set cls = {'plex': 'bg-secondary text-white st-no', 'assets': 'bg-warning text-dark st-part', 'both': 'bg-success text-white st-ok', 'checking': 'bg-secondary bg-opacity-50 text-white'}[state] %}
+    <span class="badge rounded-pill flex-shrink-0 src-badge {{ cls }}" style="font-size: .62rem;" title="{{ tip }}"{% if rk %} data-rk="{{ rk }}"{% endif %}><span class="cue-ic" aria-hidden="true">{{ {'plex': '–', 'assets': '◐', 'both': '✓', 'checking': ''}[state] }}</span>{{ {'plex': 'Plex', 'assets': 'Assets', 'both': 'Both', 'checking': '…'}[state] }}</span>
   {% endmacro %}
 
   {# ——— Reusable pagination (compact at the top, full at the bottom) ——— #}
@@ -181,7 +181,7 @@
 
   {% if checked %}
     <div class="small text-muted mb-3">
-      Badge under each poster: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = downloaded but not applied on Plex yet, <strong>Both</strong> = in the assets folder and applied (estimated from file and Plex dates).
+      Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>Both</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked.
     </div>
   {% endif %}
 
@@ -272,7 +272,7 @@
             {% endif %}
             <div class="poster-overlay d-flex align-items-center gap-1">
               <small class="text-white d-block text-truncate flex-grow-1" title="{{ item.title }}">{{ item.title }}</small>
-              {% if item.poster_src %}{{ src_badge(item.poster_src, item.poster_src_tip) }}{% endif %}
+              {% if item.poster_src %}{{ src_badge(item.poster_src, item.poster_src_tip, item.ratingKey if item.poster_src == 'checking' else none) }}{% endif %}
             </div>
           </div>
         </a>
@@ -281,4 +281,39 @@
   </div>
 
   {{ pager(7, false) }}
+
+  {# Cards whose poster has no remembered verdict yet are checked after the page
+     has loaded, three at a time, so the page itself is never slowed down. #}
+  <script>
+    (function () {
+      var badges = [].slice.call(document.querySelectorAll('.src-badge[data-rk]'));
+      if (!badges.length) return;
+      var CLS = {plex: 'bg-secondary text-white st-no', assets: 'bg-warning text-dark st-part', both: 'bg-success text-white st-ok'};
+      var ICON = {plex: '–', assets: '◐', both: '✓'};
+      var TXT = {plex: 'Plex', assets: 'Assets', both: 'Both'};
+      var url = "{{ url_for('art_status') }}";
+      var i = 0, running = 0, MAX = 3;
+      function paint(el, r) {
+        el.className = 'badge rounded-pill flex-shrink-0 src-badge ' + CLS[r.state];
+        el.title = r.tip;
+        el.innerHTML = '<span class="cue-ic" aria-hidden="true">' + ICON[r.state] + '</span>' + TXT[r.state];
+        el.removeAttribute('data-rk');
+      }
+      function next() {
+        while (running < MAX && i < badges.length) {
+          (function (el) {
+            running++;
+            fetch(url + '?rk=' + encodeURIComponent(el.getAttribute('data-rk')), {credentials: 'same-origin'})
+              .then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (r) {
+                if (r && CLS[r.state]) paint(el, r); else el.title = 'Could not check this poster';
+              })
+              .catch(function () { el.title = 'Could not check this poster'; })
+              .then(function () { running--; next(); });
+          })(badges[i++]);
+        }
+      }
+      next();
+    })();
+  </script>
 {% endblock %}

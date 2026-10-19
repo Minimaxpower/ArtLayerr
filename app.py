@@ -8,6 +8,7 @@ import re
 import unicodedata
 import csv
 import hmac
+import hashlib
 import io
 import threading
 import secrets
@@ -26,7 +27,7 @@ def sort_key(title):
     return stripped.casefold()
 
 
-from flask import Flask, Response, abort, flash, make_response, redirect, render_template, request, send_file, session, url_for
+from flask import Flask, Response, abort, flash, jsonify, make_response, redirect, render_template, request, send_file, session, url_for
 from plexapi.server import PlexServer
 
 app = Flask(__name__)
@@ -2062,12 +2063,16 @@ def refresh_assets(section_key):
 
 
 # ---- where an image lives: on Plex, in the assets folder, or both ----------
-# The assets folder is what Kometa reads; Plex only shows an image once Kometa
-# has applied it. Plex writes the time a picture last changed at the end of its
-# path (/library/metadata/123/thumb/1699999999), so comparing that with the
-# file's date tells whether Plex was updated after the file was written. It is
-# an estimate (Plex also changes that date when it refreshes metadata), which
-# is why the wording in the pages is careful.
+# When Kometa applies an asset it uploads the file to Plex, and Plex keeps it in
+# the item's list of images under a key that ends with the file's SHA-1:
+#   upload://posters/<sha1 of the file>
+# So "this exact file reached Plex" is checked by comparing the SHA-1 of the file
+# in the assets folder with those upload keys (it works for posters, backgrounds,
+# logos and square art alike, and for files that were applied long ago). Whether
+# Plex is showing that very upload is a second answer: with Kometa overlays Plex
+# ends up showing a later upload, the poster with the overlay drawn on it.
+# Verdicts are remembered in a small file next to the state file, so a file is
+# hashed once and Plex is only asked again when something changed.
 _PLEX_TS_RE = re.compile(r"/(\d{9,})(?:\?.*)?$")
 _IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
@@ -2123,7 +2128,7 @@ def _asset_folder_for(item, asset_root, for_write=False):
 
 
 def newest_asset_file(folder, match):
-    """(filename, mtime) of the newest image in one folder whose lower-cased name
+    """(filename, mtime, size) of the newest image in one folder whose lower-cased name
     satisfies match(name); None when there is none. One directory listing."""
     best = None
     try:
@@ -2133,21 +2138,126 @@ def newest_asset_file(folder, match):
                 if not f.is_file() or not low.endswith(_IMG_EXTS) or not match(low):
                     continue
                 try:
-                    mtime = f.stat().st_mtime
+                    st = f.stat()
                 except OSError:
                     continue
-                if best is None or mtime > best[1]:
-                    best = (f.name, mtime)
+                if best is None or st.st_mtime > best[1]:
+                    best = (f.name, st.st_mtime, st.st_size)
     except (FileNotFoundError, PermissionError, NotADirectoryError):
         pass
     return best
 
 
+_APPLIED_FILE_NAME = ".artlayerr-applied.json"
+_APPLIED = {"items": None, "timer": None}
+
+
+def _applied_path():
+    return os.path.join(os.path.dirname(_state_path()), _APPLIED_FILE_NAME)
+
+
+def _applied_items():
+    """{"<folder relative to the assets root>/<poster|background|season01…>":
+    {sha1, mtime, size, state, shown, plex_ts}}"""
+    if _APPLIED["items"] is None:
+        try:
+            with open(_applied_path(), encoding="utf-8") as f:
+                data = json.load(f)
+            _APPLIED["items"] = data.get("items", {}) if isinstance(data, dict) else {}
+        except Exception:
+            _APPLIED["items"] = {}
+    return _APPLIED["items"]
+
+
+def _flush_applied():
+    _APPLIED["timer"] = None
+    try:
+        path = _applied_path()
+        tmp_path = path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump({"version": 1, "items": _applied_items()}, f, ensure_ascii=False)
+        os.replace(tmp_path, path)  # atomic: never leaves a half-written file
+    except Exception:
+        pass
+
+
+def _remember_applied(key, entry):
+    """Keep a verdict and write the file shortly after (several verdicts that
+    arrive together share one write)."""
+    _applied_items()[key] = entry
+    if _APPLIED["timer"] is None:
+        timer = threading.Timer(2.0, _flush_applied)
+        timer.daemon = True
+        _APPLIED["timer"] = timer
+        timer.start()
+
+
+def _art_key(asset_root, folder, stem):
+    rel = os.path.relpath(folder, asset_root).replace(os.sep, "/")
+    return f"{rel}/{stem}"
+
+
+def file_sha1(path):
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _applied_state(candidates, sha1):
+    """('both' | 'assets', shown): did this exact file reach Plex, and is it
+    the image Plex shows right now."""
+    uploads = set()
+    selected = None
+    for c in candidates:
+        rk = str(getattr(c, "ratingKey", "") or "")
+        if rk.startswith("upload://"):
+            h = rk.rsplit("/", 1)[-1].lower()
+            uploads.add(h)
+            if getattr(c, "selected", False):
+                selected = h
+    return ("both" if sha1 in uploads else "assets"), selected == sha1
+
+
+def evaluate_art(key, folder, found, candidates, plex_ts):
+    """Verdict for one file of the assets folder against the images Plex lists.
+    Returns (state, shown), state in 'both' / 'assets' / 'unknown'."""
+    if not candidates:
+        return "unknown", False  # nothing to compare with (e.g. Plex has no list)
+    name, mtime, size = found
+    entry = _applied_items().get(key) or {}
+    sha1 = entry.get("sha1") if (entry.get("mtime") == mtime and entry.get("size") == size) else None
+    if not sha1:
+        try:
+            sha1 = file_sha1(os.path.join(folder, name))
+        except OSError:
+            return "unknown", False
+    state, shown = _applied_state(candidates, sha1)
+    _remember_applied(key, {
+        "sha1": sha1, "mtime": mtime, "size": size,
+        "state": state, "shown": shown, "plex_ts": plex_ts,
+    })
+    return state, shown
+
+
+def applied_tip(label, state, shown):
+    if state == "both" and shown:
+        return f"{label}: this exact file is in Plex and is the image Plex shows"
+    if state == "both":
+        return f"{label}: this file was sent to Plex (Kometa applied it); Plex now shows a later image, for example with overlays"
+    if state == "assets":
+        return f"{label}: in the assets folder, not sent to Plex yet (Kometa has not run since)"
+    return f"{label}: in the assets folder (Plex gave nothing to compare it with)"
+
+
 def annotate_poster_source(items):
-    """Set item.poster_src ('plex' / 'assets' / 'both', None when not checked)
-    and a tooltip for the items of ONE page of the grid. Only items that have a
-    poster in assets cost a directory listing."""
+    """Set item.poster_src for the items of ONE page of the grid: 'plex' (nothing
+    in assets), 'assets', 'both', or 'checking' when no valid verdict is
+    remembered yet — the page then asks /art_status for those cards, one by one,
+    after it has loaded. Only items that have a poster in assets cost a listing."""
     asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+    applied = _applied_items()
     for item in items:
         item.poster_src = None
         item.poster_src_tip = ""
@@ -2160,22 +2270,27 @@ def annotate_poster_source(items):
             continue
         folder = _asset_folder_for(item, asset_root)
         found = newest_asset_file(folder, lambda n: n.startswith("poster")) if folder else None
-        ts = plex_art_timestamp(getattr(item, "thumb", None))
-        if found and ts is not None and ts >= found[1]:
-            item.poster_src = "both"
-            item.poster_src_tip = "Poster: in the assets folder and Plex was updated after it (estimated: Kometa has applied it)"
-        else:
+        if not found:
             item.poster_src = "assets"
-            item.poster_src_tip = (
-                "Poster: in the assets folder, not applied on Plex yet (Kometa has not run since)"
-                if found and ts is not None
-                else "Poster: in the assets folder (cannot tell if Plex shows it)"
-            )
+            item.poster_src_tip = "Poster: in the assets folder"
+            continue
+        entry = applied.get(_art_key(asset_root, folder, "poster")) or {}
+        ts = plex_art_timestamp(getattr(item, "thumb", None))
+        same_file = entry.get("mtime") == found[1] and entry.get("size") == found[2]
+        # "both" stays true while the file is unchanged; "assets" must be asked
+        # again as soon as Plex changed anything on the item (Kometa may have run)
+        if same_file and (entry.get("state") == "both" or (entry.get("state") == "assets" and entry.get("plex_ts") == ts)):
+            item.poster_src = entry["state"]
+            item.poster_src_tip = applied_tip("Poster", entry["state"], bool(entry.get("shown")))
+        else:
+            item.poster_src = "checking"
+            item.poster_src_tip = "Poster: checking against Plex…"
 
 
-def build_art_panel(item, source, art_type, season, episode):
+def build_art_panel(item, source, art_type, season, episode, candidates):
     """What the assets folder holds for the image being browsed (show / season /
-    episode level), for the panel above the candidates on the item page."""
+    episode level), for the panel above the candidates on the item page. The
+    candidates are the images Plex already listed for this page."""
     asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
     folder = _asset_folder_for(item, asset_root)
     if not folder:
@@ -2186,10 +2301,10 @@ def build_art_panel(item, source, art_type, season, episode):
         return None
     stems = {stem, "clearlogo"} if stem == "logo" else {stem}
     found = newest_asset_file(folder, lambda n: os.path.splitext(n)[0] in stems)
-    panel = {"file": None, "url": None, "when": None, "state": "plex"}
+    panel = {"file": None, "url": None, "when": None, "state": "plex", "shown": False}
     if not found:
         return panel
-    name, mtime = found
+    name, mtime, size = found
     panel["file"] = name
     panel["when"] = datetime.datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M")
     panel["url"] = url_for(
@@ -2199,14 +2314,40 @@ def build_art_panel(item, source, art_type, season, episode):
         file=name,
         v=int(mtime),
     )
-    # Plex only dates posters and backgrounds; logos / square art cannot be compared
-    attr = {"poster": "thumb", "background": "art"}.get(art_type)
-    ts = plex_art_timestamp(getattr(source, attr, None)) if attr else None
-    if ts is None:
-        panel["state"] = "unknown"
-    else:
-        panel["state"] = "both" if ts >= mtime else "assets"
+    ts = plex_art_timestamp(getattr(source, "thumb", None)) if art_type == "poster" else None
+    panel["state"], panel["shown"] = evaluate_art(_art_key(asset_root, folder, stem), folder, found, candidates, ts)
     return panel
+
+
+@app.route("/art_status")
+def art_status():
+    """Verdict for the poster of one item (called by the grid for the cards that
+    have no remembered verdict yet)."""
+    plex = get_plex()
+    if not plex:
+        abort(403)
+    try:
+        item = plex.fetchItem(int(request.args.get("rk", "")))
+    except Exception:
+        abort(404)
+    if getattr(item, "type", None) not in ("movie", "show"):
+        abort(400)
+    asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+    folder = _asset_folder_for(item, asset_root)
+    found = newest_asset_file(folder, lambda n: n.startswith("poster")) if folder else None
+    if not found:
+        return jsonify({"state": "plex", "tip": "Poster: only on Plex, nothing in the assets folder yet"})
+    try:
+        candidates = plex_art_candidates(item, "poster")
+    except Exception:
+        abort(502)
+    state, shown = evaluate_art(
+        _art_key(asset_root, folder, "poster"), folder, found, candidates,
+        plex_art_timestamp(getattr(item, "thumb", None)),
+    )
+    if state == "unknown":
+        return jsonify({"state": "assets", "tip": applied_tip("Poster", "unknown", False)})
+    return jsonify({"state": state, "tip": applied_tip("Poster", state, shown)})
 
 
 @app.route("/asset_img")
@@ -2412,7 +2553,9 @@ def browse(section_key):
         art_source = selected_season
     else:
         art_source = item
-    art_panel = build_art_panel(item, art_source, art_type, season, episode)
+    # the images Plex offers: fetched once here, the template reuses the list
+    art_candidates = plex_art_candidates(art_source, art_type)
+    art_panel = build_art_panel(item, art_source, art_type, season, episode, art_candidates)
 
     # direct link to this item's page in the Plex web app
     try:
@@ -2454,6 +2597,7 @@ def browse(section_key):
         selected_episode=selected_episode,
         local_files=local_files,
         art_panel=art_panel,
+        art_candidates=art_candidates,
         item_page=item_page,
         item_letter=item_letter,
         pages=pages,

@@ -121,7 +121,7 @@ You also get a visual indication of whether a movie already has a poster/backgro
 
 ![](images/movies-list.jpg)
 
-A small badge next to the title tells where the poster lives: **Plex** (only on Plex, nothing in the assets folder yet), **Assets** (downloaded, but Plex does not show it yet because Kometa has not run since) or **Both** (in the assets folder and applied on Plex). "Applied" is estimated by comparing the file's date with the date Plex gives for its current poster, so it is a good indication rather than a guarantee.
+A small badge next to the title tells where the poster lives: **Plex** (only on Plex, nothing in the assets folder yet), **Assets** (a file in the assets folder that Plex does not have yet, because Kometa has not run since) or **Both** (this exact file has been sent to Plex). It is checked for real: when Kometa applies an asset it uploads the file to Plex, which keeps it in the item's list of images under a key ending with the file's SHA-1, so ArtLayerr compares the file's SHA-1 with that list. This also works for files applied long ago, with no need to download them again. The first time, cards show "…" and are checked in the background, three at a time, without slowing the page; the result is remembered in a small `.artlayerr-applied.json` file next to the state file and only redone when the file changes or Plex changes the item.
 
 You can also search by name, or only filter by movies missing a poster/background:
 
@@ -133,7 +133,7 @@ If you click on a movie, you'll see a grid displaying all the posters available 
 
 ![](images/movies-posters.jpg)
 
-Above the images, since [**v2.6.0**](https://github.com/Minimaxpower/ArtLayerr/releases#release-v2.6.0), a panel shows side by side what Plex currently shows and what is in the assets folder for the image you are browsing (show, season or episode level), with the file name and date, and the same Plex / Assets / Both status. For logos and square, Plex gives no date, so the panel only tells whether a file exists in the assets folder.
+Above the images, since [**v2.6.0**](https://github.com/Minimaxpower/ArtLayerr/releases#release-v2.6.0), a panel shows side by side what Plex currently shows and what is in the assets folder for the image you are browsing (show, season or episode level), with the file name and date, and the same Plex / Assets / Both status, checked with the file's SHA-1. With Kometa overlays, Plex shows a later upload (the image with the overlay drawn on it), so the panel then says the file was sent to Plex but is not the one currently shown. It also works for logos and square.
 
 ![](images/plex-vs-assets.jpg)
 

@@ -170,7 +170,7 @@
 {% else %}
   {% set art_source = item %}
 {% endif %}
-{% set all_art = plex_art_candidates(art_source, art_type) %}
+{% set all_art = art_candidates %}
 
 {% set total_art = all_art|length %}
 {% set all_art = all_art|sort(attribute='selected', reverse=true) %}
@@ -213,13 +213,17 @@
       <div class="align-self-center" style="max-width: 380px;">
         {% if art_panel.state == 'both' %}
           <span class="badge bg-success st-ok"><span class="cue-ic" aria-hidden="true">✓</span>Plex + Assets</span>
-          <div class="small text-muted mt-1">In the assets folder, and Plex was updated after the file was written: Kometa has applied it (estimated from the dates).</div>
+          {% if art_panel.shown %}
+            <div class="small text-muted mt-1">This exact file is in Plex and is the image it shows.</div>
+          {% else %}
+            <div class="small text-muted mt-1">This file was sent to Plex (Kometa applied it). Plex now shows a later image, for example the same one with your overlays.</div>
+          {% endif %}
         {% elif art_panel.state == 'assets' %}
           <span class="badge bg-warning text-dark st-part"><span class="cue-ic" aria-hidden="true">◐</span>In assets, not on Plex yet</span>
-          <div class="small text-muted mt-1">The file is newer than the image Plex shows: Kometa has not applied it yet (or Plex shows another image).</div>
+          <div class="small text-muted mt-1">This file has not been sent to Plex: Kometa has not run since it was saved.</div>
         {% elif art_panel.state == 'unknown' %}
           <span class="badge bg-secondary"><span class="cue-ic" aria-hidden="true">·</span>In assets</span>
-          <div class="small text-muted mt-1">Plex gives no date for this image, so whether it has been applied cannot be told.</div>
+          <div class="small text-muted mt-1">Plex gave no list of images to compare this file with.</div>
         {% else %}
           <span class="badge bg-secondary st-no"><span class="cue-ic" aria-hidden="true">–</span>Plex only</span>
           <div class="small text-muted mt-1">Pick an image below and it will be saved to the assets folder.</div>
