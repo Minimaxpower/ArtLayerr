@@ -95,12 +95,13 @@ The connection page should be filled in automatically if you completed the `.env
 ![](images/connect.jpg)
 
 After that you'll access the dashboard with every library of your Plex server. To begin with, I recommend you click the update button, especially if you already have some files in the assets directory.
-Then you can click on any library you want:
 
 ![](images/libraries-dashboard.jpg)
 
 The dashboard numbers (library bars and rings) also move by themselves right after you download, upload or paste an image: the new file is counted at once, without waiting for **Update**. **Update** is still what picks up titles added to or removed from Plex, and changes made in the assets folder by something else (Kometa, a manual copy…).
 
+
+Then you can click on any library you want:
 You'll see a grid displaying all the movies of that library.
 You also get a visual indication of whether a movie already has a poster/background selected in the Kometa assets directory.
 
@@ -118,7 +119,9 @@ If you click on a movie, you'll see a grid displaying all the posters available 
 
 ![](images/movies-posters.jpg)
 
-Above the images, a panel shows side by side what Plex currently shows and what is in the assets folder for the image you are browsing (show, season or episode level), with the file name and date, and the same Plex / Assets / Both status. For logos and square, Plex gives no date, so the panel only tells whether a file exists in the assets folder.
+Above the images, since [**v2.6.0**](https://github.com/Minimaxpower/ArtLayerr/releases#release-v2.6.0), a panel shows side by side what Plex currently shows and what is in the assets folder for the image you are browsing (show, season or episode level), with the file name and date, and the same Plex / Assets / Both status. For logos and square, Plex gives no date, so the panel only tells whether a file exists in the assets folder.
+
+![](images/plex-vs-assets.jpg)
 
 You can choose to view backgrounds instead of posters:
 
