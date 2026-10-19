@@ -112,6 +112,8 @@ You can also search by name, or only filter by movies missing a poster/backgroun
 
 ![](images/movies-filters.jpg)
 
+A second row of chips, **Has**, does the opposite of **Missing**: it lists only the items that already have a poster, a background (and a logo or square art when switched on). For shows, *Seasons* and *Episodes* keep the shows that have at least one season poster / episode image, so a partly covered show appears under both **Has** and **Missing**. Previous / Next on the item page stay within the filtered list.
+
 If you click on a movie, you'll see a grid displaying all the posters available on Plex for that movie (you can also download one from a URL or import one from your computer):
 
 ![](images/movies-posters.jpg)

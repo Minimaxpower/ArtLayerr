@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block content %}
+  {# a "has_…" filter is the inverse of the "missing" ones; the export only knows the missing ones #}
+  {% set is_has = missing_type.startswith('has_') %}
+  {% set export_type = missing_type if (missing_type and not is_has) else '' %}
   {# ——— Status chips. The item's own images (P poster, B background, L logo, Q square art)
         form one block; S|E (seasons | episodes) a second one under it ——— #}
   <style>
@@ -90,9 +93,9 @@
         <div class="btn-group btn-group-sm">
           <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export what is missing in this library">⬇ Export</button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><h6 class="dropdown-header">{% if missing_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square', 'season': 'seasons', 'episode': 'episodes'}[missing_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
-            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='csv') }}">CSV (spreadsheet)</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=missing_type if missing_type else none, format='txt') }}">Text list</a></li>
+            <li><h6 class="dropdown-header">{% if export_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square', 'season': 'seasons', 'episode': 'episodes'}[export_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
+            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=export_type if export_type else none, format='csv') }}">CSV (spreadsheet)</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=export_type if export_type else none, format='txt') }}">Text list</a></li>
           </ul>
         </div>
       {% endif %}
@@ -104,9 +107,9 @@
   </div>
 
   {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'logo': 'Logos', 'square': 'Square', 'season': 'Seasons', 'episode': 'Episodes'} %}
-  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
     {% if checked %}
-      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em;">Missing</span>
+      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em; min-width: 3.4rem;">Missing</span>
       {% for t in available_missing_types %}
         {% if missing_type == t %}
           <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, q=search_query if search_query else none) }}"
@@ -141,6 +144,28 @@
       <noscript><button type="submit" class="btn btn-sm btn-secondary">Apply</button></noscript>
     </form>
   </div>
+
+  {# the inverse filter: only the items that already have the image. For seasons / episodes it means at least one #}
+  {% if checked %}
+    {% set has_tips = {'season': 'Shows with at least one season poster', 'episode': 'Shows with at least one episode image'} %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em; min-width: 3.4rem;" title="Only the items that already have the image">Has</span>
+      {% for t in available_missing_types %}
+        {% set ht = 'has_' ~ t %}
+        {% if missing_type == ht %}
+          <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, q=search_query if search_query else none) }}"
+             class="btn btn-sm btn-success rounded-pill px-3" title="Clear filter">
+            {{ labels[t] }} <span class="opacity-75 ms-1">{{ has_counts[t] }}</span> <span class="ms-1">✕</span>
+          </a>
+        {% else %}
+          <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, missing_type=ht, q=search_query if search_query else none) }}"
+             class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="{{ has_tips.get(t, 'Only the items that have this image') }}">
+            {{ labels[t] }} <span class="opacity-50 ms-1">{{ has_counts[t] }}</span>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
 
   {% if art_pending %}
     <div class="alert alert-secondary">

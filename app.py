@@ -636,8 +636,56 @@ def _is_missing(item, missing_type):
     return False
 
 
+# ---- "has" filters: the inverse of the "missing" ones ----------------------
+# A list filter always travels in the same ?missing_type= parameter (grid, item
+# page, download forms, redirects...). A "has_" prefix flips it: "poster" keeps
+# the items MISSING a poster, "has_poster" the ones that HAVE one. Riding on
+# the existing parameter means Previous/Next on the item page and every
+# redirect work for the new filters without being touched.
+HAS_PREFIX = "has_"
+
+
+def filter_base(filter_type):
+    """'has_poster' -> 'poster'; 'poster' -> 'poster'."""
+    if filter_type.startswith(HAS_PREFIX):
+        return filter_type[len(HAS_PREFIX):]
+    return filter_type
+
+
+def filter_types_for(section_type):
+    """Every filter value accepted for a library: the missing ones and their has_ twins."""
+    base = missing_types_for(section_type)
+    return base + [HAS_PREFIX + t for t in base]
+
+
+def _has(item, art_type):
+    """The item has at least one such image. For seasons / episodes that means
+    at least one, so a half-covered show is both in "Has seasons" and in
+    "Missing seasons" (the latter means "not every season is covered")."""
+    if art_type == "poster":
+        return bool(item.has_poster)
+    if art_type == "background":
+        return bool(item.has_background)
+    if art_type == "logo":
+        return bool(item.has_logo)
+    if art_type == "square":
+        return bool(item.has_square)
+    if art_type == "season":
+        return bool(item.custom_seasons)
+    if art_type == "episode":
+        return bool(item.custom_episode_count)
+    return False
+
+
+def _matches(item, filter_type):
+    """Whether the item passes a list filter, 'poster' or 'has_poster' style."""
+    if filter_type.startswith(HAS_PREFIX):
+        return _has(item, filter_type[len(HAS_PREFIX):])
+    return _is_missing(item, filter_type)
+
+
 def get_missing_rating_keys(section, missing_type="poster", force=False, sort=DEFAULT_SORT):
-    if missing_type not in MISSING_TYPES:
+    if filter_base(missing_type) not in MISSING_TYPES:
         missing_type = "poster"
     if _ASSET_CACHE["computed_at"] is None:
         return None  # nothing has ever been checked — caller must handle this
@@ -652,7 +700,7 @@ def get_missing_rating_keys(section, missing_type="poster", force=False, sort=DE
         items = sort_items(list(section.all()), sort)
         annotate_asset_flags(items)
         entry = {
-            "keys": [i.ratingKey for i in items if _is_missing(i, missing_type)],
+            "keys": [i.ratingKey for i in items if _matches(i, missing_type)],
             "scanned_at": time.time(),
         }
         _MISSING_CACHE[key] = entry
@@ -1790,9 +1838,9 @@ def list_items(section_key):
     # which filter buttons make sense for this library type
     available_missing_types = missing_types_for(section.type)
 
-    # requested filter, validated against what's actually offered here
+    # requested filter (missing or has_), validated against what's actually offered here
     missing_type = request.args.get("missing_type", "")
-    if missing_type not in available_missing_types:
+    if missing_type not in filter_types_for(section.type):
         missing_type = ""
     # meaningless before a check has ever been run, so it's simply ignored
     if not checked:
@@ -1804,7 +1852,7 @@ def list_items(section_key):
     missing_index = 1
     if missing_type:
         for item in all_items_full:
-            if _is_missing(item, missing_type):
+            if _matches(item, missing_type):
                 item.missing_index = missing_index
                 missing_index += 1
             else:
@@ -1840,7 +1888,7 @@ def list_items(section_key):
         items_filtered = all_items_full
 
     if missing_type:
-        items_filtered = [item for item in items_filtered if _is_missing(item, missing_type)]
+        items_filtered = [item for item in items_filtered if _matches(item, missing_type)]
 
     # pagination params (based on filtered set)
     total    = len(items_filtered)
@@ -1860,6 +1908,10 @@ def list_items(section_key):
         t: (len([i for i in all_items_full if _is_missing(i, t)]) if checked else 0)
         for t in available_missing_types
     }
+    has_counts = {
+        t: (len([i for i in all_items_full if _has(i, t)]) if checked else 0)
+        for t in available_missing_types
+    }
 
     resp = make_response(render_template(
         "items.html",
@@ -1877,6 +1929,7 @@ def list_items(section_key):
         search_query=search_query,
         missing_type=missing_type,
         missing_counts=missing_counts,
+        has_counts=has_counts,
         available_missing_types=available_missing_types,
         last_check_ts=_ASSET_CACHE["computed_at"] if checked else None,
         last_check_display=(
@@ -2111,9 +2164,8 @@ def browse(section_key):
     if not section:
         flash("Library not found.")
         return redirect(url_for("libraries"))
-    available_missing_types = missing_types_for(section.type)
     missing_type = request.args.get("missing_type", "")
-    if missing_type not in available_missing_types:
+    if missing_type not in filter_types_for(section.type):
         missing_type = ""
 
     # The grid links carry the clicked item's ratingKey (rk) next to its position
@@ -2140,11 +2192,12 @@ def browse(section_key):
             return redirect(url_for("list_items", section_key=section.key))
         pages = len(missing_keys)
         if not pages:
-            label = MISSING_TYPES[missing_type]["label"]
-            flash(f"No {label} missing \u2014 filter removed.")
-            return redirect(
-                url_for("list_items", section_key=section.key, missing_type=missing_type)
-            )
+            label = MISSING_TYPES[filter_base(missing_type)]["label"]
+            if missing_type.startswith(HAS_PREFIX):
+                flash(f"No item with {label} \u2014 filter removed.")
+            else:
+                flash(f"No {label} missing \u2014 filter removed.")
+            return redirect(url_for("list_items", section_key=section.key))
         item_page = int(request.args.get("page", 1))
         item_letter = request.args.get("letter", "All")
         item_page = max(1, min(item_page, pages))
