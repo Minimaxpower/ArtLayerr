@@ -6,24 +6,27 @@
 <!-- item_page -->
 <!-- item_letter -->
 
-<h2>
+<h2 class="mb-2">
   <a href="{{ url_for('list_items', section_key=section.key, letter=item_letter, missing_type=missing_type if missing_type else none) }}">{{ section.title }}</a>: {{ item.title }}
+</h2>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
   {% if plex_web_url %}
-    <a href="{{ plex_web_url }}" target="_blank" class="btn btn-sm btn-outline-primary align-middle">View in Plex ↗</a>
+    <a href="{{ plex_web_url }}" class="btn btn-sm btn-outline-primary">View in Plex ↗</a>
   {% endif %}
   {% if imdb_url %}
-    <a href="{{ imdb_url }}" target="_blank" class="btn btn-sm btn-outline-warning align-middle">View in IMDb ↗</a>
+    <a href="{{ imdb_url }}" class="btn btn-sm btn-outline-warning">View in IMDb ↗</a>
   {% endif %}
   {% if tvdb_url %}
-    <a href="{{ tvdb_url }}" target="_blank" class="btn btn-sm btn-outline-primary align-middle">View in TVDB ↗</a>
+    <a href="{{ tvdb_url }}" class="btn btn-sm btn-outline-primary">View in TVDB ↗</a>
   {% endif %}
   {% if tmdb_url %}
-    <a href="{{ tmdb_url }}" target="_blank" class="btn btn-sm btn-outline-primary align-middle">View in TMDB ↗</a>
+    <a href="{{ tmdb_url }}" class="btn btn-sm btn-outline-primary">View in TMDB ↗</a>
   {% endif %}
   {% if mediux_url %}
-    <a href="{{ mediux_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary align-middle">View in Mediux ↗</a>
+    <a href="{{ mediux_url }}" class="btn btn-sm btn-outline-primary">View in Mediux ↗</a>
   {% endif %}
-</h2>
+</div>
 
 <div class="mb-3">
   {% if item.has_poster is none %}
