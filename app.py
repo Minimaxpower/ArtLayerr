@@ -357,72 +357,137 @@ _SEASON_FILE_RE = re.compile(r"^season(\d+)", re.IGNORECASE)
 _EPISODE_FILE_RE = re.compile(r"^s\d+e\d+", re.IGNORECASE)
 
 
-def _scan_asset_folders(root):
-    """Scan `root` (assets/movies or assets/series) and return four sets of
-    folder names: those containing a poster.*, a background.*, a logo.* (or
-    clearlogo.*) and a square.* file, directly inside them (files are flat, no
-    subfolders)."""
-    posters = set()
-    backgrounds = set()
-    logos = set()
-    squares = set()
-    try:
-        with os.scandir(root) as entries:
-            for entry in entries:
-                if not entry.is_dir():
-                    continue
-                try:
-                    with os.scandir(entry.path) as files:
-                        for f in files:
-                            if not f.is_file():
-                                continue
-                            name = f.name.lower()
-                            if name.startswith("poster"):
-                                posters.add(entry.name)
-                            elif name.startswith(("square", "backgroundsquare")):
-                                squares.add(entry.name)  # before "background": backgroundSquare is not a background
-                            elif name.startswith("background"):
-                                backgrounds.add(entry.name)
-                            elif name.startswith(("logo", "clearlogo")):
-                                logos.add(entry.name)
-                except (FileNotFoundError, PermissionError):
-                    pass
-    except (FileNotFoundError, PermissionError):
-        pass
-    return posters, backgrounds, logos, squares
+# How many folder levels below ASSETS_DIR are searched for asset folders (default 2):
+#   assets/<Title>/poster.jpg                       (1 level)
+#   assets/movies/<Title>/poster.jpg                (2 levels, ArtLayerr's own layout)
+#   assets/<Library>/<Title {tmdb-1}>/poster.jpg    (2 levels, typical Kometa layout)
+#   assets/<Library>/<Group>/<Title>/poster.jpg    (3 levels: needs ASSETS_DEPTH=3)
+try:
+    ASSETS_DEPTH = max(1, int(os.environ.get("ASSETS_DEPTH") or 2))
+except ValueError:
+    ASSETS_DEPTH = 2
 
 
-def _scan_series_season_episode_assets(root):
-    """Scan assets/series and, per show folder, collect which season numbers
-    have a custom SeasonXX.* poster and how many SxxExx.* episode title cards
-    exist. Purely file-based — this never looks at what Plex itself currently
-    has selected, only what's actually sitting in the assets folder."""
-    result = {}
+def _is_visible_dir(entry):
+    """Skip hidden folders and NAS housekeeping ones (@eaDir, #recycle, ...)."""
     try:
-        with os.scandir(root) as entries:
-            for entry in entries:
-                if not entry.is_dir():
-                    continue
-                seasons = set()
-                episode_count = 0
-                try:
-                    with os.scandir(entry.path) as files:
-                        for f in files:
-                            if not f.is_file():
-                                continue
-                            m = _SEASON_FILE_RE.match(f.name)
-                            if m:
-                                seasons.add(int(m.group(1)))
-                                continue
-                            if _EPISODE_FILE_RE.match(f.name):
-                                episode_count += 1
-                except (FileNotFoundError, PermissionError):
-                    pass
-                if seasons or episode_count:
-                    result[entry.name] = {"seasons": seasons, "episode_count": episode_count}
-    except (FileNotFoundError, PermissionError):
-        pass
-    return result
+        return entry.is_dir() and not entry.name.startswith((".", "@", "#"))
+    except OSError:
+        return False
+
+
+def _scan_tree(root, depth=None):
+    """Walk `root` down to `depth` levels and find every asset folder, whatever
+    the layout: a folder directly containing poster.* / background.* / logo.* /
+    square.* or Season01.* / S01E01.* files. A folder is not searched further
+    once it is recognised as an asset folder.
+
+    Returns (records, dirs):
+      records: folder name -> {"kinds", "seasons", "episode_count", "hints"}
+        hints = {"movies"} / {"series"} when the folder sits under a top-level
+        folder literally called movies / series (ArtLayerr's own layout), and
+        {""} for any other layout (kind unknown, so usable for both)
+      dirs: folder name -> [absolute paths]  (every folder met, even empty ones)
+    """
+    depth = depth or ASSETS_DEPTH
+    records = {}
+    dirs = {}
+
+    def visit(path, level, top):
+        try:
+            with os.scandir(path) as it:
+                subdirs = [e for e in it if _is_visible_dir(e)]
+        except (FileNotFoundError, PermissionError, NotADirectoryError):
+            return
+        for e in subdirs:
+            group = top or e.name
+            dirs.setdefault(e.name, []).append(e.path)
+            kinds, seasons, episode_count = _scan_one_folder(e.path)
+            if kinds or seasons or episode_count:
+                rec = records.setdefault(
+                    e.name,
+                    {"kinds": set(), "seasons": set(), "episode_count": 0, "hints": set()},
+                )
+                rec["kinds"] |= kinds
+                rec["seasons"] |= seasons
+                rec["episode_count"] += episode_count
+                low = group.lower()
+                rec["hints"].add(low if low in ("movies", "series") else "")
+            elif level + 1 < depth:
+                visit(e.path, level + 1, group)
+
+    visit(root, 0, None)
+    return records, dirs
+
+
+def _apply_scan(records):
+    """Fill the cached sets from the records of _scan_tree."""
+    for prefix in ("movie", "series"):
+        for t in ("posters", "backgrounds", "logos", "squares"):
+            _ASSET_CACHE[f"{prefix}_{t}"] = set()
+    _ASSET_CACHE["series_season_episode"] = {}
+    for name, rec in records.items():
+        for_movie = bool(rec["hints"] & {"movies", ""})
+        for_series = bool(rec["hints"] & {"series", ""})
+        for t in rec["kinds"]:
+            if for_movie:
+                _ASSET_CACHE[f"movie_{t}"].add(name)
+            if for_series:
+                _ASSET_CACHE[f"series_{t}"].add(name)
+        if for_series and (rec["seasons"] or rec["episode_count"]):
+            _ASSET_CACHE["series_season_episode"][name] = {
+                "seasons": rec["seasons"],
+                "episode_count": rec["episode_count"],
+            }
+
+
+# ---- matching Plex items to asset folders -------------------------------------
+# Asset folders are matched, in this order, by (1) the exact name of the media
+# folder in Plex (the historical rule), (2) an external id written in the folder
+# name, Kometa style: "Title (2016) {tmdb-333371}", "{tvdb-323168}", "{imdb-tt...}"
+# (also "[tmdbid-123]"), (3) "Title (Year)" with any {...} / [...] tag removed.
+_ID_TAG_RE = re.compile(r"[{\[](tmdb|tvdb|imdb)(?:id)?[-=]([A-Za-z0-9]+)[}\]]", re.IGNORECASE)
+_TAG_GROUP_RE = re.compile(r"\{[^}]*\}|\[[^\]]*\]")
+_ASSET_INDEX = {"names": set(), "ids": {}, "titles": {}}
+
+
+def _title_key(text):
+    return sort_key(re.sub(r"\s+", " ", _TAG_GROUP_RE.sub(" ", text or "")).strip())
+
+
+def _rebuild_asset_index():
+    """Derive the lookup tables from the cached scan (also run after load_state,
+    so nothing extra has to be saved)."""
+    names = set(_ASSET_CACHE["series_season_episode"])
+    for prefix in ("movie", "series"):
+        for t in ("posters", "backgrounds", "logos", "squares"):
+            names |= _ASSET_CACHE[f"{prefix}_{t}"]
+    ids, titles = {}, {}
+    for name in sorted(names):
+        for kind, value in _ID_TAG_RE.findall(name):
+            ids.setdefault(f"{kind.lower()}-{value.lower()}", name)
+        titles.setdefault(_title_key(name), name)
+    _ASSET_INDEX["names"], _ASSET_INDEX["ids"], _ASSET_INDEX["titles"] = names, ids, titles
+
+
+# folder name -> [absolute paths], from the last scan (None = not built yet).
+# Rebuilt by every full scan; patched when a folder is created.
+_DIR_INDEX = {"root": None, "map": None}
+
+
+def _dir_paths(asset_root, name):
+    if _DIR_INDEX["map"] is None or _DIR_INDEX["root"] != asset_root:
+        _, dirs = _scan_tree(asset_root)
+        _DIR_INDEX["root"], _DIR_INDEX["map"] = asset_root, dirs
+    return list(_DIR_INDEX["map"].get(name, ()))
+
+
+def _remember_dir(asset_root, path):
+    if _DIR_INDEX["map"] is None or _DIR_INDEX["root"] != asset_root:
+        return
+    paths = _DIR_INDEX["map"].setdefault(os.path.basename(path), [])
+    if path not in paths:
+        paths.append(path)
 
 
 def get_asset_folders(asset_root, force=False):
@@ -430,18 +495,11 @@ def get_asset_folders(asset_root, force=False):
     actually (re)do the disk scan (used by the manual refresh button and
     right after a download)."""
     if force:
-        (
-            _ASSET_CACHE["movie_posters"], _ASSET_CACHE["movie_backgrounds"],
-            _ASSET_CACHE["movie_logos"], _ASSET_CACHE["movie_squares"],
-        ) = _scan_asset_folders(os.path.join(asset_root, "movies"))
-        (
-            _ASSET_CACHE["series_posters"], _ASSET_CACHE["series_backgrounds"],
-            _ASSET_CACHE["series_logos"], _ASSET_CACHE["series_squares"],
-        ) = _scan_asset_folders(os.path.join(asset_root, "series"))
+        records, dirs = _scan_tree(asset_root)
+        _apply_scan(records)
+        _DIR_INDEX["root"], _DIR_INDEX["map"] = asset_root, dirs
+        _rebuild_asset_index()
         _ASSET_CACHE["art_scanned"] = True
-        _ASSET_CACHE["series_season_episode"] = _scan_series_season_episode_assets(
-            os.path.join(asset_root, "series")
-        )
         _ASSET_CACHE["computed_at"] = time.time()
         save_state()
     return _ASSET_CACHE
@@ -478,12 +536,13 @@ def _scan_one_folder(path):
     return kinds, seasons, episode_count
 
 
-def update_asset_folder(asset_root, kind, name):
-    """Re-read a single folder (assets/movies/<name> or assets/series/<name>)
+def update_asset_folder(path, kind):
+    """Re-read a single asset folder (wherever it lives under the assets root)
     and patch the cached scan, instead of walking the whole assets tree. The
     caller saves the state."""
+    name = os.path.basename(path)
     prefix = "movie" if kind == "movies" else "series"
-    kinds, seasons, episode_count = _scan_one_folder(os.path.join(asset_root, kind, name))
+    kinds, seasons, episode_count = _scan_one_folder(path)
     for t in ("posters", "backgrounds", "logos", "squares"):
         cached = _ASSET_CACHE[f"{prefix}_{t}"]
         if t in kinds:
@@ -498,17 +557,43 @@ def update_asset_folder(asset_root, kind, name):
             }
         else:
             _ASSET_CACHE["series_season_episode"].pop(name, None)
+    _rebuild_asset_index()
     _ASSET_CACHE["changed_at"] = time.time()
 
 
-def _asset_name(item):
-    """Name of the item's folder inside assets/movies or assets/series."""
+def _media_folder_name(item):
+    """Name of the item's own folder in Plex (movie folder / show folder)."""
     try:
         if item.type == "movie":
             return os.path.basename(os.path.dirname(item.media[0].parts[0].file))
         return os.path.basename(item.locations[0])
     except Exception:
         return None
+
+
+def _asset_name(item):
+    """Name of the asset folder of this item. The Plex folder name when an asset
+    folder of that name exists; otherwise the asset folder found through the
+    item's TMDB / TVDB / IMDB id, or through "Title (Year)". When nothing
+    matches, the Plex folder name is returned (it is where a download goes)."""
+    name = _media_folder_name(item)
+    idx = _ASSET_INDEX
+    if name and name in idx["names"]:
+        return name
+    try:
+        for kind, value in _item_external_ids(item).items():
+            hit = idx["ids"].get(f"{kind}-{str(value).lower()}")
+            if hit:
+                return hit
+        title = getattr(item, "title", None)
+        year = getattr(item, "year", None)
+        if title and year:
+            hit = idx["titles"].get(_title_key(f"{title} ({year})"))
+            if hit:
+                return hit
+    except Exception:
+        pass
+    return name
 
 
 def annotate_asset_flags(items, asset_dir=None):
@@ -535,8 +620,7 @@ def annotate_asset_flags(items, asset_dir=None):
             continue
         try:
             if item.type == "movie":
-                media_file = item.media[0].parts[0].file
-                asset_name = os.path.basename(os.path.dirname(media_file))
+                asset_name = _asset_name(item)
                 item.has_poster = asset_name in cache["movie_posters"]
                 item.has_background = asset_name in cache["movie_backgrounds"]
                 item.has_logo = (asset_name in cache["movie_logos"]) if art_scanned else None
@@ -547,7 +631,7 @@ def annotate_asset_flags(items, asset_dir=None):
                 item.seasons_complete = None
                 item.episodes_complete = None
             else:
-                asset_name = os.path.basename(item.locations[0])
+                asset_name = _asset_name(item)
                 item.has_poster = asset_name in cache["series_posters"]
                 item.has_background = asset_name in cache["series_backgrounds"]
                 item.has_logo = (asset_name in cache["series_logos"]) if art_scanned else None
@@ -808,6 +892,7 @@ def load_state():
             _ASSET_CACHE["series_squares"] = set(ac.get("series_squares", []))
             _ASSET_CACHE["art_scanned"] = bool(ac.get("art_scanned", False))
             _ASSET_CACHE["computed_at"] = ac["computed_at"]
+            _rebuild_asset_index()
         _IGNORED.clear()
         _IGNORED.update(str(k) for k in payload.get("ignored_libraries", []))
         dash = payload.get("dashboard") or {}
@@ -963,7 +1048,7 @@ def after_asset_write(item, base_dir):
         get_asset_folders(asset_root, force=True)  # saves the state itself
     else:
         kind = "movies" if item.type == "movie" else "series"
-        update_asset_folder(asset_root, kind, os.path.basename(base_dir))
+        update_asset_folder(base_dir, kind)
     recompute_dashboard_counts()
     save_state()
 
@@ -1501,12 +1586,7 @@ def _item_external_ids(item):
 
 
 def _asset_folder_name(item):
-    try:
-        if item.type == "movie":
-            return os.path.basename(os.path.dirname(item.media[0].parts[0].file))
-        return os.path.basename(item.locations[0])
-    except Exception:
-        return ""
+    return _asset_name(item) or ""
 
 
 def collect_missing_rows(section, missing_type="", art_types=()):
@@ -1997,11 +2077,49 @@ def plex_art_timestamp(path):
     return int(m.group(1)) if m else None
 
 
-def _asset_folder_for(item, asset_root):
+def _top_folder(asset_root, path):
+    rel = os.path.relpath(path, asset_root)
+    return rel.split(os.sep)[0] if rel and rel != "." else ""
+
+
+def _find_dir_ci(parent, wanted):
+    """Subfolder of `parent` whose name equals `wanted`, ignoring case."""
+    try:
+        with os.scandir(parent) as it:
+            for e in it:
+                if e.is_dir() and e.name.lower() == (wanted or "").lower():
+                    return e.path
+    except OSError:
+        pass
+    return None
+
+
+def _asset_folder_for(item, asset_root, for_write=False):
+    """Folder holding the assets of this item, wherever it lives under the assets
+    root. For an item without any folder yet: the legacy movies/series path when
+    reading, and, when writing, the library's own folder (assets/<Library>/) if
+    the assets are organised that way, else assets/movies | assets/series."""
     name = _asset_name(item)
+    if not name and for_write:
+        name = item.title
     if not name:
         return None
-    return os.path.join(asset_root, "movies" if item.type == "movie" else "series", name)
+    kind_dir = "movies" if item.type == "movie" else "series"
+    legacy_parent = os.path.join(asset_root, kind_dir)
+    library = getattr(item, "librarySectionTitle", None) or ""
+    found = _dir_paths(asset_root, name)
+    if found:
+        def rank(p):
+            top = _top_folder(asset_root, p)
+            return (top.lower() != library.lower(), top != kind_dir)
+        return sorted(found, key=rank)[0]
+    if not for_write:
+        return os.path.join(legacy_parent, name)
+    if os.path.isdir(legacy_parent):
+        parent = legacy_parent
+    else:
+        parent = _find_dir_ci(asset_root, library) or legacy_parent
+    return os.path.join(parent, name)
 
 
 def newest_asset_file(folder, match):
@@ -2104,9 +2222,15 @@ def asset_img():
     for part in (folder, filename):
         if not part or part in (".", "..") or "/" in part or "\\" in part or "\x00" in part:
             abort(400)
-    root = os.path.realpath(os.path.join(os.getcwd(), session.get("asset_dir", "assets"), kind))
-    path = os.path.realpath(os.path.join(root, folder, filename))
-    if os.path.commonpath([root, path]) != root or not os.path.isfile(path):
+    asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+    root = os.path.realpath(asset_root)
+    path = None
+    for candidate in _dir_paths(asset_root, folder):
+        p = os.path.realpath(os.path.join(candidate, filename))
+        if os.path.commonpath([root, p]) == root and os.path.isfile(p):
+            path = p
+            break
+    if path is None:
         abort(404)
     resp = send_file(path, conditional=True)
     resp.headers["Cache-Control"] = "private, max-age=86400"  # the URL carries the file date (v=)
@@ -2127,10 +2251,11 @@ def scan_show_local_files(item, art_type):
         return result
     want_background = art_type == "background"
     try:
-        asset_name = os.path.basename(item.locations[0])
-        item_dir = os.path.join(
-            os.getcwd(), session.get("asset_dir", "assets"), "series", asset_name
+        item_dir = _asset_folder_for(
+            item, os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
         )
+        if not item_dir:
+            return result
         with os.scandir(item_dir) as entries:
             for entry in entries:
                 if not entry.is_file():
@@ -2374,28 +2499,8 @@ app.jinja_env.globals["plex_art_candidates"] = plex_art_candidates
 
 
 def compute_asset_base_dir(item, season_item):
-    try:
-        asset_name = None
-        if item.type == "movie":
-            media_file = item.media[0].parts[0].file
-        elif item.type == "show" or season_item:
-            media_file = item.locations[0]
-            asset_name = os.path.basename(media_file)
-        elif item.type == "episode":
-            media_file = item.media[0].parts[0].file
-        else:
-            media_file = None
-        if not asset_name:
-            asset_name = os.path.basename(os.path.dirname(media_file))
-    except Exception:
-        asset_name = item.title
-
-    return os.path.join(
-        os.getcwd(),
-        session["asset_dir"],
-        "movies" if item.type == "movie" else "series",
-        asset_name,
-    )
+    asset_root = os.path.join(os.getcwd(), session["asset_dir"])
+    return _asset_folder_for(item, asset_root, for_write=True)
 
 
 def compute_asset_filename(item, art_type, season, episode, ext):
@@ -2458,6 +2563,7 @@ def download():
 
     base_dir = compute_asset_base_dir(item, season_item)
     os.makedirs(base_dir, exist_ok=True)
+    _remember_dir(os.path.join(os.getcwd(), session["asset_dir"]), base_dir)
 
     ext = os.path.splitext(img_key)[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
@@ -2521,6 +2627,7 @@ def upload_url():
 
     base_dir = compute_asset_base_dir(item, season_item)
     os.makedirs(base_dir, exist_ok=True)
+    _remember_dir(os.path.join(os.getcwd(), session["asset_dir"]), base_dir)
 
     ext = os.path.splitext(image_url.split("?")[0])[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
@@ -2580,6 +2687,7 @@ def upload_file():
 
     base_dir = compute_asset_base_dir(item, season_item)
     os.makedirs(base_dir, exist_ok=True)
+    _remember_dir(os.path.join(os.getcwd(), session["asset_dir"]), base_dir)
 
     ext = os.path.splitext(uploaded.filename)[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)

@@ -43,6 +43,7 @@ You have to fill in the `.env` file for it to work.
          - APP_PASSWORD=${APP_PASSWORD:-}
          - DISABLE_UPDATE_CHECK=${DISABLE_UPDATE_CHECK:-}
          - AUTO_REFRESH_HOURS=${AUTO_REFRESH_HOURS:-}
+         - ASSETS_DEPTH=${ASSETS_DEPTH:-}
    ```
 
 3. Create a `.env` file next to it (you can start from [`.env.example`](.env.example)):
@@ -54,6 +55,7 @@ You have to fill in the `.env` file for it to work.
    APP_PASSWORD=
    DISABLE_UPDATE_CHECK=
    AUTO_REFRESH_HOURS=
+   ASSETS_DEPTH=
    ```
 
    | Variable | Description |
@@ -65,6 +67,18 @@ You have to fill in the `.env` file for it to work.
    | `APP_PASSWORD` | *Optional.* If set, the whole app asks for this password. Leave empty to disable (default) |
    | `DISABLE_UPDATE_CHECK` | *Optional.* The "new version available" badge relies on a check against GitHub (at most one request every 6 hours). Set to `1` (or `true`) to turn it off. Empty, unset or `0` keeps it on (default) |
    | `AUTO_REFRESH_HOURS` | *Optional.* Recompute the dashboard and re-scan the assets folder automatically every X hours (for example `6`), at most every 15 minutes. Empty or `0` = off, the **Update** buttons stay the only trigger (default). Needs `PLEX_BASE_URL` and `PLEX_TOKEN` to be set in `.env` |
+   | `ASSETS_DEPTH` | *Optional.* How many folder levels below `ASSETS_DIR` are searched for asset folders. Empty = `2` (default), which covers every layout listed below. Set `3` if your asset folders are nested one level deeper, for example `assets/<Library>/<Group>/<Title>/` |
+
+   ArtLayerr finds your existing assets whatever the layout of the assets folder, as long as each item has its own folder containing `poster.jpg`, `background.jpg`, `logo.png`, `square.png`, `Season01.jpg` or `S01E01.jpg`:
+
+   ```
+   assets/movies/<Title>/poster.jpg                      # ArtLayerr's own layout
+   assets/series/<Title>/poster.jpg
+   assets/<Library>/<Title (Year) {tmdb-123}>/poster.jpg  # Kometa, one folder per Plex library
+   assets/<Title (Year) {tvdb-123}>/poster.jpg            # everything in one folder
+   ```
+
+   An asset folder is matched to a Plex item by (in this order) the name of the item's folder in Plex, the TMDB / TVDB / IMDB id written in the asset folder name (`{tmdb-123}`, `{tvdb-123}`, `{imdb-tt123}` or `[tmdbid-123]`), then `Title (Year)`. Folders starting with `.`, `@` or `#` (for example Synology's `@eaDir`) are ignored. New images go into the folder that already exists for the item; if there is none, into `assets/movies` / `assets/series` when they exist, otherwise into the folder named after the item's Plex library (`assets/<Library>/`). After changing the layout, or upgrading, click **Update** once so the assets folder is scanned again.
 
 4. Start it:
    ```
