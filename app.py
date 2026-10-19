@@ -26,7 +26,7 @@ def sort_key(title):
     return stripped.casefold()
 
 
-from flask import Flask, Response, abort, flash, make_response, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, flash, make_response, redirect, render_template, request, send_file, session, url_for
 from plexapi.server import PlexServer
 
 app = Flask(__name__)
@@ -347,6 +347,10 @@ _ASSET_CACHE = {
     # then stay "unknown" (?) until the next Update instead of looking missing
     "art_scanned": False,
     "computed_at": None,
+    # bumped when only ONE folder was re-read (after a download): it marks the
+    # cached "missing" lists as stale without pretending that a full check ran,
+    # so "Last checked" keeps showing the time of the last full scan
+    "changed_at": None,
 }
 
 _SEASON_FILE_RE = re.compile(r"^season(\d+)", re.IGNORECASE)
@@ -441,6 +445,70 @@ def get_asset_folders(asset_root, force=False):
         _ASSET_CACHE["computed_at"] = time.time()
         save_state()
     return _ASSET_CACHE
+
+
+def _scan_one_folder(path):
+    """Read ONE asset folder with the same rules as the full scan. Returns
+    (kinds, seasons, episode_count): kinds is a subset of posters / backgrounds /
+    logos / squares."""
+    kinds = set()
+    seasons = set()
+    episode_count = 0
+    try:
+        with os.scandir(path) as files:
+            for f in files:
+                if not f.is_file():
+                    continue
+                name = f.name.lower()
+                if name.startswith("poster"):
+                    kinds.add("posters")
+                elif name.startswith(("square", "backgroundsquare")):
+                    kinds.add("squares")
+                elif name.startswith("background"):
+                    kinds.add("backgrounds")
+                elif name.startswith(("logo", "clearlogo")):
+                    kinds.add("logos")
+                m = _SEASON_FILE_RE.match(f.name)
+                if m:
+                    seasons.add(int(m.group(1)))
+                elif _EPISODE_FILE_RE.match(f.name):
+                    episode_count += 1
+    except (FileNotFoundError, PermissionError, NotADirectoryError):
+        pass
+    return kinds, seasons, episode_count
+
+
+def update_asset_folder(asset_root, kind, name):
+    """Re-read a single folder (assets/movies/<name> or assets/series/<name>)
+    and patch the cached scan, instead of walking the whole assets tree. The
+    caller saves the state."""
+    prefix = "movie" if kind == "movies" else "series"
+    kinds, seasons, episode_count = _scan_one_folder(os.path.join(asset_root, kind, name))
+    for t in ("posters", "backgrounds", "logos", "squares"):
+        cached = _ASSET_CACHE[f"{prefix}_{t}"]
+        if t in kinds:
+            cached.add(name)
+        else:
+            cached.discard(name)
+    if kind == "series":
+        if seasons or episode_count:
+            _ASSET_CACHE["series_season_episode"][name] = {
+                "seasons": seasons,
+                "episode_count": episode_count,
+            }
+        else:
+            _ASSET_CACHE["series_season_episode"].pop(name, None)
+    _ASSET_CACHE["changed_at"] = time.time()
+
+
+def _asset_name(item):
+    """Name of the item's folder inside assets/movies or assets/series."""
+    try:
+        if item.type == "movie":
+            return os.path.basename(os.path.dirname(item.media[0].parts[0].file))
+        return os.path.basename(item.locations[0])
+    except Exception:
+        return None
 
 
 def annotate_asset_flags(items, asset_dir=None):
@@ -578,7 +646,7 @@ def get_missing_rating_keys(section, missing_type="poster", force=False, sort=DE
     if (
         force
         or not entry
-        or entry["scanned_at"] < _ASSET_CACHE["computed_at"]
+        or entry["scanned_at"] < max(_ASSET_CACHE["computed_at"], _ASSET_CACHE.get("changed_at") or 0)
         or time.time() - entry["scanned_at"] > _MISSING_CACHE_TTL
     ):
         items = sort_items(list(section.all()), sort)
@@ -741,6 +809,10 @@ def compute_totals(library_stats, ignored=()):
 def compute_dashboard_stats(plex, asset_dir=None):
     sections = sorted(plex.library.sections(), key=lambda s: sort_key(s.title))
     library_stats = []
+    # per library: [asset folder, seasons, episodes] of every item. It lets the
+    # numbers be recomputed from the disk scan alone after a download, with no
+    # call to Plex (see recompute_dashboard_counts)
+    rows_by_section = {}
 
     for section in sections:
         if section.type not in ("movie", "show"):
@@ -751,6 +823,10 @@ def compute_dashboard_stats(plex, asset_dir=None):
             continue
         annotate_asset_flags(items, asset_dir)
         total = len(items)
+        rows_by_section[str(section.key)] = [
+            [_asset_name(i), getattr(i, "childCount", 0) or 0, getattr(i, "leafCount", 0) or 0]
+            for i in items
+        ]
         poster_done = sum(1 for i in items if i.has_poster)
         bg_done = sum(1 for i in items if i.has_background)
         logo_done = sum(1 for i in items if i.has_logo)
@@ -791,7 +867,57 @@ def compute_dashboard_stats(plex, asset_dir=None):
         library_stats.append(lib_entry)
 
     library_stats.sort(key=lambda lib: (lib["type"], sort_key(lib["title"])))
-    return {"library_stats": library_stats, "totals": compute_totals(library_stats)}
+    return {
+        "library_stats": library_stats,
+        "totals": compute_totals(library_stats),
+        "rows": rows_by_section,
+    }
+
+
+def recompute_dashboard_counts():
+    """Refresh the dashboard numbers (library bars, rings) from the cached disk
+    scan alone — no call to Plex, so it is instant. The totals (how many movies,
+    seasons, episodes exist) still come from the last full Update; this only
+    redoes the "done" side. Returns False when there is nothing to recompute
+    (no dashboard yet, or a state saved by an older version without the rows)."""
+    data = _DASHBOARD_CACHE.get("data")
+    if not data or not data.get("rows") or _ASSET_CACHE["computed_at"] is None:
+        return False
+    art_scanned = bool(_ASSET_CACHE.get("art_scanned"))
+    season_episode = _ASSET_CACHE["series_season_episode"]
+    for lib in data["library_stats"]:
+        rows = data["rows"].get(str(lib["key"]))
+        if rows is None:
+            continue
+        prefix = "series" if lib["type"] == "show" else "movie"
+        posters = _ASSET_CACHE[f"{prefix}_posters"]
+        backgrounds = _ASSET_CACHE[f"{prefix}_backgrounds"]
+        logos = _ASSET_CACHE[f"{prefix}_logos"]
+        squares = _ASSET_CACHE[f"{prefix}_squares"]
+        lib["poster_done"] = sum(1 for r in rows if r[0] in posters)
+        lib["bg_done"] = sum(1 for r in rows if r[0] in backgrounds)
+        lib["logo_done"] = sum(1 for r in rows if r[0] in logos) if art_scanned else 0
+        lib["square_done"] = sum(1 for r in rows if r[0] in squares) if art_scanned else 0
+        if lib["type"] == "show":
+            lib["season_done"] = sum(len(season_episode[r[0]]["seasons"]) for r in rows if r[0] in season_episode)
+            lib["episode_done"] = sum(season_episode[r[0]]["episode_count"] for r in rows if r[0] in season_episode)
+    data["totals"] = compute_totals(data["library_stats"])
+    return True
+
+
+def after_asset_write(item, base_dir):
+    """A file was just written into base_dir. Bring the caches up to date the
+    cheap way: re-read that one folder (a full scan only when nothing has been
+    scanned yet), then redo the dashboard counts from memory. The old code
+    walked the whole assets tree twice per download."""
+    asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+    if _ASSET_CACHE["computed_at"] is None or not _ASSET_CACHE.get("art_scanned"):
+        get_asset_folders(asset_root, force=True)  # saves the state itself
+    else:
+        kind = "movies" if item.type == "movie" else "series"
+        update_asset_folder(asset_root, kind, os.path.basename(base_dir))
+    recompute_dashboard_counts()
+    save_state()
 
 
 # ---- shared refresh + optional automatic refresh ---------------------------
@@ -1728,6 +1854,7 @@ def list_items(section_key):
     # slice out this page from filtered items
     start      = (page - 1) * per_page
     page_items = items_filtered[start : start + per_page]
+    annotate_poster_source(page_items)
 
     missing_counts = {
         t: (len([i for i in all_items_full if _is_missing(i, t)]) if checked else 0)
@@ -1799,6 +1926,138 @@ def refresh_assets(section_key):
             missing_type=request.args.get("missing_type"),
         )
     )
+
+
+# ---- where an image lives: on Plex, in the assets folder, or both ----------
+# The assets folder is what Kometa reads; Plex only shows an image once Kometa
+# has applied it. Plex writes the time a picture last changed at the end of its
+# path (/library/metadata/123/thumb/1699999999), so comparing that with the
+# file's date tells whether Plex was updated after the file was written. It is
+# an estimate (Plex also changes that date when it refreshes metadata), which
+# is why the wording in the pages is careful.
+_PLEX_TS_RE = re.compile(r"/(\d{9,})(?:\?.*)?$")
+_IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+
+
+def plex_art_timestamp(path):
+    m = _PLEX_TS_RE.search(path or "")
+    return int(m.group(1)) if m else None
+
+
+def _asset_folder_for(item, asset_root):
+    name = _asset_name(item)
+    if not name:
+        return None
+    return os.path.join(asset_root, "movies" if item.type == "movie" else "series", name)
+
+
+def newest_asset_file(folder, match):
+    """(filename, mtime) of the newest image in one folder whose lower-cased name
+    satisfies match(name); None when there is none. One directory listing."""
+    best = None
+    try:
+        with os.scandir(folder) as files:
+            for f in files:
+                low = f.name.lower()
+                if not f.is_file() or not low.endswith(_IMG_EXTS) or not match(low):
+                    continue
+                try:
+                    mtime = f.stat().st_mtime
+                except OSError:
+                    continue
+                if best is None or mtime > best[1]:
+                    best = (f.name, mtime)
+    except (FileNotFoundError, PermissionError, NotADirectoryError):
+        pass
+    return best
+
+
+def annotate_poster_source(items):
+    """Set item.poster_src ('plex' / 'assets' / 'both', None when not checked)
+    and a tooltip for the items of ONE page of the grid. Only items that have a
+    poster in assets cost a directory listing."""
+    asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+    for item in items:
+        item.poster_src = None
+        item.poster_src_tip = ""
+        has = getattr(item, "has_poster", None)
+        if has is None:
+            continue
+        if not has:
+            item.poster_src = "plex"
+            item.poster_src_tip = "Poster: only on Plex, nothing in the assets folder yet"
+            continue
+        folder = _asset_folder_for(item, asset_root)
+        found = newest_asset_file(folder, lambda n: n.startswith("poster")) if folder else None
+        ts = plex_art_timestamp(getattr(item, "thumb", None))
+        if found and ts is not None and ts >= found[1]:
+            item.poster_src = "both"
+            item.poster_src_tip = "Poster: in the assets folder and Plex was updated after it (estimated: Kometa has applied it)"
+        else:
+            item.poster_src = "assets"
+            item.poster_src_tip = (
+                "Poster: in the assets folder, not applied on Plex yet (Kometa has not run since)"
+                if found and ts is not None
+                else "Poster: in the assets folder (cannot tell if Plex shows it)"
+            )
+
+
+def build_art_panel(item, source, art_type, season, episode):
+    """What the assets folder holds for the image being browsed (show / season /
+    episode level), for the panel above the candidates on the item page."""
+    asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+    folder = _asset_folder_for(item, asset_root)
+    if not folder:
+        return None
+    try:
+        stem = os.path.splitext(compute_asset_filename(item, art_type, season, episode, ".x"))[0].lower()
+    except (TypeError, ValueError):
+        return None
+    stems = {stem, "clearlogo"} if stem == "logo" else {stem}
+    found = newest_asset_file(folder, lambda n: os.path.splitext(n)[0] in stems)
+    panel = {"file": None, "url": None, "when": None, "state": "plex"}
+    if not found:
+        return panel
+    name, mtime = found
+    panel["file"] = name
+    panel["when"] = datetime.datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M")
+    panel["url"] = url_for(
+        "asset_img",
+        kind="movies" if item.type == "movie" else "series",
+        folder=os.path.basename(folder),
+        file=name,
+        v=int(mtime),
+    )
+    # Plex only dates posters and backgrounds; logos / square art cannot be compared
+    attr = {"poster": "thumb", "background": "art"}.get(art_type)
+    ts = plex_art_timestamp(getattr(source, attr, None)) if attr else None
+    if ts is None:
+        panel["state"] = "unknown"
+    else:
+        panel["state"] = "both" if ts >= mtime else "assets"
+    return panel
+
+
+@app.route("/asset_img")
+def asset_img():
+    """Serve one image of the assets folder (the panel on the item page)."""
+    if not session.get("base_url") or not get_token():
+        abort(403)
+    kind = request.args.get("kind", "")
+    folder = request.args.get("folder", "")
+    filename = request.args.get("file", "")
+    if kind not in ("movies", "series") or not filename.lower().endswith(_IMG_EXTS):
+        abort(400)
+    for part in (folder, filename):
+        if not part or part in (".", "..") or "/" in part or "\\" in part or "\x00" in part:
+            abort(400)
+    root = os.path.realpath(os.path.join(os.getcwd(), session.get("asset_dir", "assets"), kind))
+    path = os.path.realpath(os.path.join(root, folder, filename))
+    if os.path.commonpath([root, path]) != root or not os.path.isfile(path):
+        abort(404)
+    resp = send_file(path, conditional=True)
+    resp.headers["Cache-Control"] = "private, max-age=86400"  # the URL carries the file date (v=)
+    return resp
 
 
 # Which levels of ONE show already have a file in the assets folder, for the
@@ -1966,6 +2225,17 @@ def browse(section_key):
 
     local_files = scan_show_local_files(item, art_type)
 
+    # the item the candidates below belong to (same choice as item.html makes)
+    if section.type == "movie":
+        art_source = item
+    elif selected_episode:
+        art_source = selected_episode
+    elif selected_season:
+        art_source = selected_season
+    else:
+        art_source = item
+    art_panel = build_art_panel(item, art_source, art_type, season, episode)
+
     # direct link to this item's page in the Plex web app
     try:
         plex_web_url = (
@@ -2005,6 +2275,7 @@ def browse(section_key):
         season_episodes=season_episodes,
         selected_episode=selected_episode,
         local_files=local_files,
+        art_panel=art_panel,
         item_page=item_page,
         item_letter=item_letter,
         pages=pages,
@@ -2147,13 +2418,9 @@ def download():
     with open(os.path.join(base_dir, filename), "wb") as f:
         f.write(resp.content)
 
-    # a new file just landed on disk — refresh the cached "has poster" sets right
-    # away instead of waiting for the TTL, so the badge is correct immediately
-    get_asset_folders(
-        os.path.join(os.getcwd(), session.get("asset_dir", "assets")), force=True
-    )
-    if _ASSET_CACHE["computed_at"] is not None:
-        refresh_asset_check(plex, ctx["section_key"])
+    # a new file just landed on disk: refresh that folder in the cached scan and
+    # the dashboard counts right away, so badges and rings are correct at once
+    after_asset_write(item, base_dir)
 
     flash(f"Saved to {os.path.join(base_dir, filename)}")
     return redirect(
@@ -2210,11 +2477,7 @@ def upload_url():
         resp.raise_for_status()
         with open(os.path.join(base_dir, filename), "wb") as f:
             f.write(resp.content)
-        get_asset_folders(
-            os.path.join(os.getcwd(), session.get("asset_dir", "assets")), force=True
-        )
-        if _ASSET_CACHE["computed_at"] is not None:
-            refresh_asset_check(plex, ctx["section_key"])
+        after_asset_write(item, base_dir)
         flash(f"Saved to {os.path.join(base_dir, filename)}")
     except Exception as e:
         flash(f"Download from URL failed: {e}")
@@ -2270,11 +2533,7 @@ def upload_file():
 
     uploaded.save(os.path.join(base_dir, filename))
 
-    get_asset_folders(
-        os.path.join(os.getcwd(), session.get("asset_dir", "assets")), force=True
-    )
-    if _ASSET_CACHE["computed_at"] is not None:
-        refresh_asset_check(plex, ctx["section_key"])
+    after_asset_write(item, base_dir)
     flash(f"Saved to {os.path.join(base_dir, filename)}")
 
     return redirect(

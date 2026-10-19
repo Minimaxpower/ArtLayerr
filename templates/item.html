@@ -183,6 +183,49 @@
   </div>
 {% endif %}
 
+{# What the assets folder holds for this image, next to what Plex shows #}
+{% if art_panel %}
+  {% set plex_current = all_art[0] if all_art and all_art[0].selected else none %}
+  {% set thumb_style = 'max-height: 150px; max-width: 240px; object-fit: contain; cursor: zoom-in;' ~ (' padding: 8px; background: rgba(128,128,128,.15);' if art_type in ['logo', 'square'] else '') %}
+  <div class="card p-3 mb-3">
+    <div class="d-flex flex-wrap gap-4 align-items-start">
+      <div>
+        <div class="small text-muted text-uppercase mb-1" style="letter-spacing: .05em;">On Plex</div>
+        {% if plex_current %}
+          {% set cur_url = plex_current.key if plex_current.key.startswith('http') else url_for('plex_img', path=plex_current.key) %}
+          <img src="{{ cur_url }}" class="rounded" style="{{ thumb_style }}" alt="Image shown on Plex" onclick="showImagePreview('{{ cur_url|e }}')">
+        {% else %}
+          <div class="text-muted small">Nothing selected</div>
+        {% endif %}
+      </div>
+      <div>
+        <div class="small text-muted text-uppercase mb-1" style="letter-spacing: .05em;">In the assets folder</div>
+        {% if art_panel.file %}
+          <img src="{{ art_panel.url }}" class="rounded" style="{{ thumb_style }}" alt="Image in the assets folder" onclick="showImagePreview('{{ art_panel.url|e }}')">
+          <div class="small text-muted mt-1">{{ art_panel.file }} · {{ art_panel.when }}</div>
+        {% else %}
+          <div class="text-muted small">Nothing downloaded yet for this image</div>
+        {% endif %}
+      </div>
+      <div class="align-self-center" style="max-width: 380px;">
+        {% if art_panel.state == 'both' %}
+          <span class="badge bg-success st-ok"><span class="cue-ic" aria-hidden="true">✓</span>Plex + Assets</span>
+          <div class="small text-muted mt-1">In the assets folder, and Plex was updated after the file was written: Kometa has applied it (estimated from the dates).</div>
+        {% elif art_panel.state == 'assets' %}
+          <span class="badge bg-warning text-dark st-part"><span class="cue-ic" aria-hidden="true">◐</span>In assets, not on Plex yet</span>
+          <div class="small text-muted mt-1">The file is newer than the image Plex shows: Kometa has not applied it yet (or Plex shows another image).</div>
+        {% elif art_panel.state == 'unknown' %}
+          <span class="badge bg-secondary"><span class="cue-ic" aria-hidden="true">·</span>In assets</span>
+          <div class="small text-muted mt-1">Plex gives no date for this image, so whether it has been applied cannot be told.</div>
+        {% else %}
+          <span class="badge bg-secondary st-no"><span class="cue-ic" aria-hidden="true">–</span>Plex only</span>
+          <div class="small text-muted mt-1">Pick an image below and it will be saved to the assets folder.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
 <div class="row g-3 mb-3">
   <div class="col-md-6">
     <form action="{{ url_for('upload_url') }}" method="post" class="d-flex gap-2">
@@ -334,9 +377,11 @@ function showImagePreview(url) {
   new bootstrap.Modal(document.getElementById('imagePreviewModal')).show();
 }
 
-// Comparison selection, persisted per-item (so it survives changing art_page
-// but resets on a different movie/show) via localStorage.
-const COMPARE_KEY = "compare_{{ item.ratingKey }}";
+// Comparison selection, persisted via localStorage per item AND per kind of image
+// (poster / background / logo / square, and show / season / episode level): it
+// survives changing art_page, but a poster ticked earlier can no longer be sent
+// as a logo from the comparison window.
+const COMPARE_KEY = "compare_{{ item.ratingKey }}_{{ art_type }}_{{ season }}_{{ episode }}";
 const COMPARE_MAX = 4;
 const DOWNLOAD_CONTEXT = {
   rating_key: "{{ item.ratingKey }}",

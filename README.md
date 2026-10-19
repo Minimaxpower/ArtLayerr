@@ -99,10 +99,14 @@ Then you can click on any library you want:
 
 ![](images/libraries-dashboard.jpg)
 
+The dashboard numbers (library bars and rings) also move by themselves right after you download, upload or paste an image: the new file is counted at once, without waiting for **Update**. **Update** is still what picks up titles added to or removed from Plex, and changes made in the assets folder by something else (Kometa, a manual copy…).
+
 You'll see a grid displaying all the movies of that library.
-Each card carries colored chips: P poster, B background, L logo and Q square (these two only when switched on, see below) to let you know if a movie has already that in its /assets directory.
+You also get a visual indication of whether a movie already has a poster/background selected in the Kometa assets directory.
 
 ![](images/movies-list.jpg)
+
+A small badge next to the title tells where the poster lives: **Plex** (only on Plex, nothing in the assets folder yet), **Assets** (downloaded, but Plex does not show it yet because Kometa has not run since) or **Both** (in the assets folder and applied on Plex). "Applied" is estimated by comparing the file's date with the date Plex gives for its current poster, so it is a good indication rather than a guarantee.
 
 You can also search by name, or only filter by movies missing a poster/background:
 
@@ -111,6 +115,8 @@ You can also search by name, or only filter by movies missing a poster/backgroun
 If you click on a movie, you'll see a grid displaying all the posters available on Plex for that movie (you can also download one from a URL or import one from your computer):
 
 ![](images/movies-posters.jpg)
+
+Above the images, a panel shows side by side what Plex currently shows and what is in the assets folder for the image you are browsing (show, season or episode level), with the file name and date, and the same Plex / Assets / Both status. For logos and square, Plex gives no date, so the panel only tells whether a file exists in the assets folder.
 
 You can choose to view backgrounds instead of posters:
 
@@ -151,17 +157,9 @@ You can also select multiple images and compare them :
 
 ![](images/compare.jpg)
 
-Logo screen selection :
-
-![](images/logo.jpg)
-
-Square screen selection : 
-
-![](images/square.jpg)
-
 Once a check has been run, the **Export** button (on the dashboard, and on each library's list) downloads what is missing as a CSV file (one row per item, with TMDB/TVDB/IMDB ids and the asset folder name) or as a plain text list. On a library's list it exports the whole library for the current filter; on the dashboard it exports every library.
 
-The rings on Library Dashboard (posters, seasons, backgrounds, episodes) are now links to what is missing. If only one library concerned: opens its filtered list directly; several: a small picker.
+The four rings on Library Dashboard (posters, seasons, backgrounds, episodes) are now links to what is missing. If only one library concerned: opens its filtered list directly; several: a small picker.
 
 ![](images/rings.jpg)
 
@@ -173,11 +171,7 @@ The **Settings** menu (top right) gathers the display options:
 - **Visual cues**: *None*, *Icons* (a small symbol per art type on the dashboard, and ✓ / ◐ / ✕ on the status chips) or *Patterns* (each art type gets its own hatching on the bars and rings, and partial / missing chips get a texture). Cues work with any color mode, so color is never the only signal. Like the other display options, both choices are kept in your browser.
 - Light / dark mode, and **Log out** when a password is set.
 
-![](images/settings.jpg)
-
 Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click the eye icon on the library's card (open eye = counted, crossed-out eye = ignored). It stays visible, greyed out, and you can still open it; click the eye again to count it. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.
-
-![](images/ignore.jpg)
 
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 
