@@ -827,7 +827,7 @@ _STATE_VERSION = 1
 
 
 def _state_path():
-    base = os.environ.get("STATE_DIR") or os.environ.get("PLEX_ASSET_DIR", "assets")
+    base = os.environ.get("STATE_DIR") or os.environ.get("KOMETA_ASSET_DIR", "assets")
     return os.path.join(os.getcwd(), base, _STATE_FILE_NAME)
 
 
@@ -1115,7 +1115,7 @@ def start_auto_refresh():
         print("[auto-refresh] AUTO_REFRESH_HOURS is set but PLEX_BASE_URL / PLEX_TOKEN are not: "
               "automatic refresh is off.", flush=True)
         return
-    asset_dir = os.environ.get("PLEX_ASSET_DIR", "assets")
+    asset_dir = os.environ.get("KOMETA_ASSET_DIR", "assets")
     _AUTO["active"] = True
     threading.Thread(
         target=_auto_refresh_loop,
@@ -1359,7 +1359,7 @@ def connect():
     # optional defaults from environment variables (set in docker-compose.yml)
     env_base_url = os.environ.get("PLEX_BASE_URL", "")
     env_token = os.environ.get("PLEX_TOKEN", "")
-    env_asset_dir = os.environ.get("PLEX_ASSET_DIR", "assets")
+    env_asset_dir = os.environ.get("KOMETA_ASSET_DIR", "assets")
 
     if request.method == "POST":
         base_url = request.form["base_url"].strip()

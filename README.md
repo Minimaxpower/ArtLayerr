@@ -38,7 +38,7 @@ You have to fill in the `.env` file for it to work.
        environment:
          - PLEX_BASE_URL=${PLEX_BASE_URL}
          - PLEX_TOKEN=${PLEX_TOKEN}
-         - PLEX_ASSET_DIR=/assets
+         - KOMETA_ASSET_DIR=/assets
          - SECRET_KEY=${SECRET_KEY}
          - APP_PASSWORD=${APP_PASSWORD:-}
          - DISABLE_UPDATE_CHECK=${DISABLE_UPDATE_CHECK:-}

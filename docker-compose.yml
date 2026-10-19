@@ -11,7 +11,7 @@ services:
     environment:
       - PLEX_BASE_URL=${PLEX_BASE_URL}
       - PLEX_TOKEN=${PLEX_TOKEN}
-      - PLEX_ASSET_DIR=/assets
+      - KOMETA_ASSET_DIR=/assets
       - ASSETS_DEPTH=${ASSETS_DEPTH:-}
       - SECRET_KEY=${SECRET_KEY}
       - APP_PASSWORD=${APP_PASSWORD:-}
