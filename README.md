@@ -100,7 +100,7 @@ Then you can click on any library you want:
 ![](images/libraries-dashboard.jpg)
 
 You'll see a grid displaying all the movies of that library.
-You also get a visual indication of whether a movie already has a poster/background selected in the Kometa assets directory.
+Each card carries colored chips: P poster, B background, L logo and Q square (these two only when switched on, see below) to let you know if a movie has already that in its /assets directory.
 
 ![](images/movies-list.jpg)
 
@@ -151,9 +151,17 @@ You can also select multiple images and compare them :
 
 ![](images/compare.jpg)
 
+Logo screen selection :
+
+![](images/logo.jpg)
+
+Square screen selection : 
+
+![](images/square.jpg)
+
 Once a check has been run, the **Export** button (on the dashboard, and on each library's list) downloads what is missing as a CSV file (one row per item, with TMDB/TVDB/IMDB ids and the asset folder name) or as a plain text list. On a library's list it exports the whole library for the current filter; on the dashboard it exports every library.
 
-The four rings on Library Dashboard (posters, seasons, backgrounds, episodes) are now links to what is missing. If only one library concerned: opens its filtered list directly; several: a small picker.
+The rings on Library Dashboard (posters, seasons, backgrounds, episodes) are now links to what is missing. If only one library concerned: opens its filtered list directly; several: a small picker.
 
 ![](images/rings.jpg)
 
@@ -165,7 +173,11 @@ The **Settings** menu (top right) gathers the display options:
 - **Visual cues**: *None*, *Icons* (a small symbol per art type on the dashboard, and ✓ / ◐ / ✕ on the status chips) or *Patterns* (each art type gets its own hatching on the bars and rings, and partial / missing chips get a texture). Cues work with any color mode, so color is never the only signal. Like the other display options, both choices are kept in your browser.
 - Light / dark mode, and **Log out** when a password is set.
 
+![](images/settings.jpg)
+
 Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click the eye icon on the library's card (open eye = counted, crossed-out eye = ignored). It stays visible, greyed out, and you can still open it; click the eye again to count it. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.
+
+![](images/ignore.jpg)
 
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 
