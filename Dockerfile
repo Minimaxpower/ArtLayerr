@@ -16,4 +16,9 @@ ENV APP_VERSION=${APP_VERSION}
 VOLUME /assets
 EXPOSE 5000
 
-CMD ["flask", "run", "--host=0.0.0.0"]
+# One worker on purpose: the scan, dashboard and Plex/Assets caches live in this
+# process's memory (several workers would each keep their own and overwrite the
+# state file). Concurrency comes from the threads.
+CMD ["gunicorn", "--workers", "1", "--threads", "8", "--timeout", "300", \
+     "--worker-tmp-dir", "/dev/shm", "--access-logfile", "-", \
+     "--bind", "0.0.0.0:5000", "app:app"]
