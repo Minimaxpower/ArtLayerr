@@ -1,0 +1,39 @@
+{# Rows of the journal (Activity page) or of one item's history (item page).
+   Only text is kept: "Download again" fetches the image from its original source. #}
+{% macro history_table(entries, next_url, show_item=true) %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr class="small text-muted text-uppercase" style="letter-spacing: .05em;">
+          <th></th><th>When</th>{% if show_item %}<th>Item</th>{% endif %}<th>Image</th><th>File</th><th>How</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+          <tr>
+            <td style="width: 52px;">
+              {% if e.preview %}
+                <img src="{{ e.preview }}" loading="lazy" alt="" class="rounded" style="height: 44px; max-width: 60px; object-fit: contain;" onerror="this.style.visibility='hidden'">
+              {% endif %}
+            </td>
+            <td class="text-nowrap small">{{ e.when }}</td>
+            {% if show_item %}
+              <td><a href="{{ e.open_url }}">{{ e.item_title }}</a>{% if e.section_title %}<div class="small text-muted">{{ e.section_title }}</div>{% endif %}</td>
+            {% endif %}
+            <td class="small text-nowrap">{{ e.art_type|capitalize }}{% if e.level %} · {{ e.level }}{% endif %}</td>
+            <td class="small text-muted" style="overflow-wrap: anywhere;">{{ e.file }} · {{ e.size }}</td>
+            <td class="small text-nowrap">{{ e.action }}{% if e.replaced %} <span class="badge bg-secondary">replaced</span>{% endif %}</td>
+            <td class="text-end">
+              <form method="post" action="{{ url_for('activity_redownload', entry_id=e.id) }}" class="m-0"
+                    onsubmit="return confirm('Download this image again? It replaces the current file.');">
+                <input type="hidden" name="next" value="{{ next_url }}">
+                <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap"
+                        {% if not e.can_redo %}disabled title="Uploaded from a file: there is no source to download it again from"{% else %}title="Fetch this image again from where it came from"{% endif %}>↻ Download again</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endmacro %}

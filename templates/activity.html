@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% from '_history.html' import history_table %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Activity</h2>
+  <a href="{{ url_for('libraries') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+</div>
+
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link{% if tab == 'progress' %} active{% endif %}" href="{{ url_for('activity', tab='progress') }}">Progress</a></li>
+  <li class="nav-item"><a class="nav-link{% if tab == 'journal' %} active{% endif %}" href="{{ url_for('activity', tab='journal') }}">Journal</a></li>
+</ul>
+
+{% if tab == 'progress' %}
+  <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+    <div class="btn-group btn-group-sm" role="group" aria-label="Period" id="range">
+      <button type="button" class="btn btn-outline-secondary" data-days="30">30 days</button>
+      <button type="button" class="btn btn-outline-secondary" data-days="90">90 days</button>
+      <button type="button" class="btn btn-outline-secondary" data-days="365">1 year</button>
+      <button type="button" class="btn btn-outline-secondary" data-days="0">All</button>
+    </div>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Unit" id="metric">
+      <button type="button" class="btn btn-outline-secondary" data-metric="pct">Percent</button>
+      <button type="button" class="btn btn-outline-secondary" data-metric="count">Count</button>
+    </div>
+    <div class="d-flex flex-wrap gap-3 small" id="legend"></div>
+  </div>
+  <div class="card p-3">
+    <div id="chart" style="position: relative; min-height: 320px;">
+      <div id="chartmsg" class="text-muted small"></div>
+      <div id="tip" class="small" style="position: absolute; display: none; pointer-events: none; z-index: 5; padding: 6px 8px; border-radius: 8px; background: var(--bs-body-bg); border: 1px solid rgba(127,127,127,.4); white-space: nowrap;"></div>
+    </div>
+  </div>
+  <p class="small text-muted mt-2">
+    One point is saved per day: each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard.
+  </p>
+
+  <script>
+    (function () {
+      var KINDS = [['poster', 'Posters', '▯'], ['background', 'Backgrounds', '▭'], ['season', 'Seasons', '▤'], ['episode', 'Episodes', '●'], ['logo', 'Logos', '◆'], ['square', 'Square', '■']];
+      var DASH = {poster: '', background: '7 4', season: '2 3', episode: '9 3 2 3', logo: '1 4', square: '11 5'};
+      var URL_JSON = "{{ url_for('activity_progress') }}";
+      var state = {days: 90, metric: 'pct', hidden: {}, data: null};
+      var host = document.getElementById('chart'), tip = document.getElementById('tip');
+      var msg = document.getElementById('chartmsg'), legend = document.getElementById('legend');
+      var svgNS = 'http://www.w3.org/2000/svg';
+
+      function usesDash() { return document.documentElement.getAttribute('data-cue') === 'patterns'; }
+      function pts(kind) {
+        return ((state.data.series || {})[kind] || []).map(function (p) {
+          return {day: p[0], t: Date.parse(p[0] + 'T00:00:00'), done: p[1], total: p[2],
+                  v: state.metric === 'pct' ? (p[2] ? p[1] / p[2] * 100 : 0) : p[1]};
+        });
+      }
+      function fmtDay(t) { return new Date(t).toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}); }
+      function fmtVal(v) { return state.metric === 'pct' ? (Math.round(v * 10) / 10) + '%' : String(Math.round(v)); }
+
+      function buildLegend() {
+        legend.innerHTML = '';
+        KINDS.forEach(function (k) {
+          if (!(state.data.series || {})[k[0]]) return;
+          var label = document.createElement('label');
+          label.className = 'd-inline-flex align-items-center gap-1';
+          label.style.cursor = 'pointer';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.className = 'form-check-input m-0'; cb.checked = !state.hidden[k[0]];
+          cb.addEventListener('change', function () { state.hidden[k[0]] = !cb.checked; draw(); });
+          var sw = '<svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" stroke-width="3" style="stroke: var(--c-' + k[0] + ')"' +
+                   (usesDash() && DASH[k[0]] ? ' stroke-dasharray="' + DASH[k[0]] + '"' : '') + '/></svg>';
+          label.appendChild(cb);
+          label.insertAdjacentHTML('beforeend', sw + '<span><span class="cue-ic" aria-hidden="true">' + k[2] + '</span>' + k[1] + '</span>');
+          legend.appendChild(label);
+        });
+      }
+
+      function draw() {
+        var old = host.querySelector('svg'); if (old) old.remove();
+        tip.style.display = 'none';
+        var shown = KINDS.filter(function (k) { return !state.hidden[k[0]] && (state.data.series || {})[k[0]]; });
+        var all = [];
+        shown.forEach(function (k) { all = all.concat(pts(k[0])); });
+        var days = {}; all.forEach(function (p) { days[p.t] = p.day; });
+        var times = Object.keys(days).map(Number).sort(function (a, b) { return a - b; });
+        if (!all.length) { msg.textContent = state.data.error ? 'The history database is not available.' : 'No data yet: the curve fills in as you use ArtLayerr.'; return; }
+        if (times.length < 2) { msg.textContent = 'Only one day of data so far (' + days[times[0]] + '). The curve appears from the second day.'; return; }
+        msg.textContent = '';
+
+        var W = Math.max(host.clientWidth, 320), H = 320, L = 52, R = 14, T = 14, B = 30;
+        var min = Infinity, max = -Infinity;
+        all.forEach(function (p) { if (p.v < min) min = p.v; if (p.v > max) max = p.v; });
+        var lo, hi;
+        if (state.metric === 'pct') { lo = Math.max(0, Math.floor(min - 1)); hi = Math.min(100, Math.ceil(max + 1)); }
+        else { var pad = Math.max(1, (max - min) * 0.1); lo = Math.max(0, Math.floor(min - pad)); hi = Math.ceil(max + pad); }
+        if (hi - lo < 2) hi = lo + 2;
+        var t0 = times[0], t1 = times[times.length - 1];
+        function X(t) { return L + (t - t0) / (t1 - t0) * (W - L - R); }
+        function Y(v) { return T + (1 - (v - lo) / (hi - lo)) * (H - T - B); }
+
+        var svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('width', W); svg.setAttribute('height', H);
+        svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Progress over time');
+        var g = '';
+        for (var i = 0; i <= 4; i++) {
+          var v = lo + (hi - lo) * i / 4, y = Y(v);
+          g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="rgba(127,127,127,.25)"/>' +
+               '<text x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">' + fmtVal(v) + '</text>';
+        }
+        var nTicks = Math.min(6, times.length);
+        for (var j = 0; j < nTicks; j++) {
+          var tt = t0 + (t1 - t0) * j / (nTicks - 1);
+          g += '<text x="' + X(tt) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">' + fmtDay(tt) + '</text>';
+        }
+        shown.forEach(function (k) {
+          var p = pts(k[0]);
+          var d = p.map(function (q, n) { return (n ? 'L' : 'M') + X(q.t).toFixed(1) + ' ' + Y(q.v).toFixed(1); }).join(' ');
+          g += '<path d="' + d + '" fill="none" stroke-width="2.2" stroke-linejoin="round" style="stroke: var(--c-' + k[0] + ')"' +
+               (usesDash() && DASH[k[0]] ? ' stroke-dasharray="' + DASH[k[0]] + '"' : '') + '/>';
+          p.forEach(function (q) { g += '<circle cx="' + X(q.t).toFixed(1) + '" cy="' + Y(q.v).toFixed(1) + '" r="2.6" style="fill: var(--c-' + k[0] + ')"/>'; });
+        });
+        g += '<line id="hov" x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" stroke="currentColor" opacity=".4" style="display:none"/>' +
+             '<rect id="hit" x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '" fill="transparent"/>';
+        svg.innerHTML = g;
+        host.insertBefore(svg, msg);
+        var hov = svg.querySelector('#hov'), hit = svg.querySelector('#hit');
+        hit.addEventListener('mousemove', function (ev) {
+          var r = svg.getBoundingClientRect(), x = ev.clientX - r.left;
+          var best = times[0], bd = Infinity;
+          times.forEach(function (t) { var dx = Math.abs(X(t) - x); if (dx < bd) { bd = dx; best = t; } });
+          hov.setAttribute('x1', X(best)); hov.setAttribute('x2', X(best)); hov.style.display = '';
+          var html = '<strong>' + days[best] + '</strong>';
+          shown.forEach(function (k) {
+            var q = pts(k[0]).filter(function (z) { return z.t === best; })[0];
+            if (q) html += '<div><span class="cue-ic" aria-hidden="true">' + k[2] + '</span><span style="color: var(--c-' + k[0] + ')">●</span> ' + k[1] + ': ' + fmtVal(q.v) + ' (' + q.done + '/' + q.total + ')</div>';
+          });
+          tip.innerHTML = html; tip.style.display = 'block';
+          var left = X(best) + 12; if (left + tip.offsetWidth > W) left = X(best) - tip.offsetWidth - 12;
+          tip.style.left = Math.max(0, left) + 'px'; tip.style.top = (T + 6) + 'px';
+        });
+        hit.addEventListener('mouseleave', function () { hov.style.display = 'none'; tip.style.display = 'none'; });
+      }
+
+      function mark() {
+        [].forEach.call(document.querySelectorAll('#range button'), function (b) {
+          var on = Number(b.getAttribute('data-days')) === state.days;
+          b.classList.toggle('active', on);
+        });
+        [].forEach.call(document.querySelectorAll('#metric button'), function (b) {
+          b.classList.toggle('active', b.getAttribute('data-metric') === state.metric);
+        });
+      }
+      function load() {
+        mark(); msg.textContent = 'Loading…';
+        fetch(URL_JSON + '?days=' + state.days, {credentials: 'same-origin'})
+          .then(function (r) { return r.ok ? r.json() : {series: {}, error: true}; })
+          .then(function (j) { state.data = j; buildLegend(); draw(); })
+          .catch(function () { msg.textContent = 'Could not load the data.'; });
+      }
+      [].forEach.call(document.querySelectorAll('#range button'), function (b) {
+        b.addEventListener('click', function () { state.days = Number(b.getAttribute('data-days')); load(); });
+      });
+      [].forEach.call(document.querySelectorAll('#metric button'), function (b) {
+        b.addEventListener('click', function () { state.metric = b.getAttribute('data-metric'); mark(); if (state.data) draw(); });
+      });
+      window.addEventListener('resize', function () { if (state.data) draw(); });
+      load();
+    })();
+  </script>
+
+{% else %}
+  {% if not db_ok %}
+    <div class="alert alert-warning">The history database could not be opened (is the assets folder writable?).</div>
+  {% endif %}
+  <form method="get" class="row g-2 mb-3">
+    <input type="hidden" name="tab" value="journal">
+    <div class="col-md-3">
+      <select name="section" class="form-select form-select-sm" aria-label="Library" onchange="this.form.submit()">
+        <option value="">All libraries</option>
+        {% for key, title in libraries_seen %}<option value="{{ key }}"{% if key == section %} selected{% endif %}>{{ title }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="art" class="form-select form-select-sm" aria-label="Kind of image" onchange="this.form.submit()">
+        <option value="">All images</option>
+        {% for a in art_filters %}<option value="{{ a }}"{% if a == art %} selected{% endif %}>{{ a|capitalize }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6 d-flex gap-2">
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search a title…">
+      <button type="submit" class="btn btn-sm btn-secondary text-nowrap">Search</button>
+      {% if q or section or art %}<a href="{{ url_for('activity', tab='journal') }}" class="btn btn-sm btn-outline-secondary">✕</a>{% endif %}
+    </div>
+  </form>
+
+  {% if entries %}
+    <div class="card p-3">
+      {{ history_table(entries, url_for('activity', tab='journal', page=page, section=section or none, art=art or none, q=q or none)) }}
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <span class="small text-muted">{{ total }} image{{ 's' if total != 1 else '' }} saved</span>
+      {% if pages > 1 %}
+        <nav aria-label="Page navigation">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item{% if page <= 1 %} disabled{% endif %}"><a class="page-link" href="{{ url_for('activity', tab='journal', page=page-1, section=section or none, art=art or none, q=q or none) }}">‹</a></li>
+            <li class="page-item disabled"><span class="page-link">{{ page }} / {{ pages }}</span></li>
+            <li class="page-item{% if page >= pages %} disabled{% endif %}"><a class="page-link" href="{{ url_for('activity', tab='journal', page=page+1, section=section or none, art=art or none, q=q or none) }}">›</a></li>
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+    <p class="small text-muted mt-2">
+      The journal keeps text only, never a copy of an image. “Download again” fetches the image again from its original source (Plex or the URL), so it only works while that source still has it; images uploaded from a file cannot be fetched again.
+    </p>
+  {% else %}
+    <div class="alert alert-secondary">Nothing saved yet{% if q or section or art %} with these filters{% endif %}: every image you download, paste or upload from now on is listed here.</div>
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -30,6 +30,8 @@ def sort_key(title):
 from flask import Flask, Response, abort, flash, jsonify, make_response, redirect, render_template, request, send_file, session, url_for
 from plexapi.server import PlexServer
 
+import artdb
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
 
@@ -904,6 +906,137 @@ def load_state():
         pass  # missing or unreadable file: just start empty, as before
 
 
+# ---- journal + progress curve (SQLite, see artdb.py) ------------------------
+# The file sits next to the state file, in the assets folder. Nothing here may
+# ever break a download or a refresh: every database call is wrapped and only
+# logs a warning.
+artdb.configure(os.path.join(os.path.dirname(_state_path()), ".artlayerr.db"))
+_DB_WARNED = {"done": False}
+
+
+def _db_warn(e):
+    if not _DB_WARNED["done"]:
+        _DB_WARNED["done"] = True
+        print(f"[artlayerr] history database unavailable: {type(e).__name__}: {e}", flush=True)
+
+
+def record_snapshot(day=None):
+    """Save today's numbers (done / total per library and kind of art) for the
+    progress curve. Several calls the same day replace each other."""
+    data = _DASHBOARD_CACHE.get("data")
+    if not data:
+        return
+    art_scanned = bool(_ASSET_CACHE.get("art_scanned"))
+    rows = []
+    for lib in data["library_stats"]:
+        key, title, total = str(lib["key"]), lib.get("title"), lib["total"]
+        rows.append((key, title, "poster", lib["poster_done"], total))
+        rows.append((key, title, "background", lib["bg_done"], total))
+        if lib.get("season_total") is not None:
+            rows.append((key, title, "season", lib["season_done"], lib["season_total"]))
+            rows.append((key, title, "episode", lib["episode_done"], lib["episode_total"]))
+        if art_scanned:
+            rows.append((key, title, "logo", lib.get("logo_done") or 0, total))
+            rows.append((key, title, "square", lib.get("square_done") or 0, total))
+    try:
+        artdb.save_snapshot(day or datetime.date.today().isoformat(), rows)
+    except Exception as e:
+        _db_warn(e)
+
+
+def _startup_snapshot():
+    """First start with this version: the saved dashboard becomes the first
+    point of the curve (dated when it was computed)."""
+    try:
+        computed = _DASHBOARD_CACHE.get("computed_at")
+        if computed and not artdb.has_snapshots():
+            record_snapshot(datetime.date.fromtimestamp(computed).isoformat())
+    except Exception as e:
+        _db_warn(e)
+
+
+def journal_log(item, ctx, base_dir, filename, action, source, replaced):
+    """Remember that an image was saved: text only, no copy of the image."""
+    try:
+        asset_root = os.path.join(os.getcwd(), session.get("asset_dir", "assets"))
+        path = os.path.join(base_dir, filename)
+        artdb.add_journal(
+            ts=time.time(),
+            rating_key=int(item.ratingKey),
+            season_rating_key=ctx.get("season_rating_key"),
+            section_key=str(ctx.get("section_key") or getattr(item, "librarySectionID", "")),
+            section_title=getattr(item, "librarySectionTitle", None),
+            item_title=item.title,
+            item_type=item.type,
+            art_type=ctx["art_type"],
+            season=ctx.get("season"),
+            episode=ctx.get("episode"),
+            file=os.path.relpath(path, asset_root).replace(os.sep, "/"),
+            size=os.path.getsize(path),
+            action=action,
+            source=source,
+            replaced=1 if replaced else 0,
+        )
+    except Exception as e:
+        _db_warn(e)
+
+
+def _human_size(n):
+    n = float(n or 0)
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{int(n)} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+
+
+def _level_label(season, episode):
+    try:
+        if episode not in (None, ""):
+            return f"S{int(season):02d}E{int(episode):02d}"
+        if season not in (None, ""):
+            return "Specials" if int(season) == 0 else f"Season {int(season)}"
+    except (TypeError, ValueError):
+        pass
+    return ""
+
+
+_ACTION_LABELS = {"plex": "Download", "url": "From URL", "upload": "Upload", "redo": "Re-download"}
+
+
+def journal_view(row):
+    """A journal row, ready for the templates."""
+    source = row.get("source") or ""
+    if source.startswith("http"):
+        preview = source
+    elif source:
+        preview = url_for("plex_img", path=source)
+    else:
+        preview = None
+    return {
+        "id": row["id"],
+        "when": datetime.datetime.fromtimestamp(row["ts"]).strftime("%d/%m/%Y %H:%M"),
+        "item_title": row.get("item_title") or "?",
+        "section_title": row.get("section_title") or "",
+        "art_type": row["art_type"],
+        "level": _level_label(row.get("season"), row.get("episode")),
+        "file": row.get("file") or "",
+        "size": _human_size(row.get("size")),
+        "action": _ACTION_LABELS.get(row.get("action"), row.get("action") or ""),
+        "replaced": bool(row.get("replaced")),
+        "preview": preview,
+        "can_redo": bool(source),
+        "open_url": url_for(
+            "browse",
+            section_key=row["section_key"],
+            page=1,
+            rk=row.get("rating_key"),
+            art_type=row["art_type"],
+            season=row.get("season"),
+            episode=row.get("episode"),
+        ) if row.get("section_key") else "#",
+    }
+
+
 def compute_totals(library_stats, ignored=()):
     """Dashboard totals, summed over the libraries that are not ignored. Done on
     every page view (it is only a few additions), so ignoring or including a
@@ -1052,6 +1185,7 @@ def after_asset_write(item, base_dir):
         update_asset_folder(base_dir, kind)
     recompute_dashboard_counts()
     save_state()
+    record_snapshot()
 
 
 # ---- shared refresh + optional automatic refresh ---------------------------
@@ -1068,6 +1202,7 @@ def run_full_refresh(plex, asset_dir=None):
         _DASHBOARD_CACHE["data"] = compute_dashboard_stats(plex, asset_dir)
         _DASHBOARD_CACHE["computed_at"] = time.time()
         save_state()
+        record_snapshot()
 
 
 # AUTO_REFRESH_HOURS=6 recomputes everything every 6 hours, in the background.
@@ -2319,6 +2454,16 @@ def build_art_panel(item, source, art_type, season, episode, candidates):
     return panel
 
 
+def _item_history(rating_key, art_type, season, episode):
+    """Past saves of this item for the image being browsed (item page panel)."""
+    try:
+        rows = artdb.journal_for_item(int(rating_key), art_type, season, episode, limit=10)
+        return [journal_view(r) for r in rows]
+    except Exception as e:
+        _db_warn(e)
+        return []
+
+
 @app.route("/art_status")
 def art_status():
     """Verdict for the poster of one item (called by the grid for the cards that
@@ -2598,6 +2743,7 @@ def browse(section_key):
         local_files=local_files,
         art_panel=art_panel,
         art_candidates=art_candidates,
+        art_history=_item_history(item.ratingKey, art_type, season, episode),
         item_page=item_page,
         item_letter=item_letter,
         pages=pages,
@@ -2717,6 +2863,7 @@ def download():
     else:
         img_url = f"{session['base_url']}{img_key}&X-Plex-Token={get_token()}"
 
+    replaced = os.path.exists(os.path.join(base_dir, filename))
     resp = requests.get(img_url)
     with open(os.path.join(base_dir, filename), "wb") as f:
         f.write(resp.content)
@@ -2724,6 +2871,7 @@ def download():
     # a new file just landed on disk: refresh that folder in the cached scan and
     # the dashboard counts right away, so badges and rings are correct at once
     after_asset_write(item, base_dir)
+    journal_log(item, ctx, base_dir, filename, "plex", img_key, replaced)
 
     flash(f"Saved to {os.path.join(base_dir, filename)}")
     return redirect(
@@ -2779,9 +2927,11 @@ def upload_url():
     try:
         resp = requests.get(image_url, timeout=15)
         resp.raise_for_status()
+        replaced = os.path.exists(os.path.join(base_dir, filename))
         with open(os.path.join(base_dir, filename), "wb") as f:
             f.write(resp.content)
         after_asset_write(item, base_dir)
+        journal_log(item, ctx, base_dir, filename, "url", image_url, replaced)
         flash(f"Saved to {os.path.join(base_dir, filename)}")
     except Exception as e:
         flash(f"Download from URL failed: {e}")
@@ -2836,9 +2986,11 @@ def upload_file():
     ext = os.path.splitext(uploaded.filename)[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
 
+    replaced = os.path.exists(os.path.join(base_dir, filename))
     uploaded.save(os.path.join(base_dir, filename))
 
     after_asset_write(item, base_dir)
+    journal_log(item, ctx, base_dir, filename, "upload", None, replaced)
     flash(f"Saved to {os.path.join(base_dir, filename)}")
 
     return redirect(
@@ -2855,8 +3007,128 @@ def upload_file():
     )
 
 
+# ---- Activity page: progress curve + journal ------------------------------
+_ART_FILTERS = ("poster", "background", "logo", "square")
+
+
+@app.route("/activity")
+def activity():
+    if not session.get("base_url") or not get_token():
+        return redirect(url_for("connect"))
+    tab = "journal" if request.args.get("tab") == "journal" else "progress"
+    ctx = {"tab": tab}
+    if tab == "journal":
+        section = request.args.get("section", "")
+        art = request.args.get("art", "")
+        if art not in _ART_FILTERS:
+            art = ""
+        query = request.args.get("q", "").strip()
+        per_page = 25
+        page = max(1, request.args.get("page", 1, type=int))
+        try:
+            rows, total = artdb.list_journal(
+                limit=per_page, offset=(page - 1) * per_page,
+                section_key=section or None, art_type=art or None, query=query or None,
+            )
+            libraries_seen = artdb.journal_libraries()
+            db_ok = True
+        except Exception as e:
+            _db_warn(e)
+            rows, total, libraries_seen, db_ok = [], 0, [], False
+        ctx.update(
+            entries=[journal_view(r) for r in rows], total=total, page=page,
+            pages=max(1, math.ceil(total / per_page)), section=section, art=art, q=query,
+            libraries_seen=libraries_seen, db_ok=db_ok, art_filters=_ART_FILTERS,
+        )
+    return render_template("activity.html", **ctx)
+
+
+@app.route("/activity/progress.json")
+def activity_progress():
+    """Series for the progress curve: for each kind of art, one point per day
+    with done / total summed over the libraries that are not ignored."""
+    if not session.get("base_url") or not get_token():
+        abort(403)
+    days = request.args.get("days", 90, type=int)
+    since = None
+    if days and days > 0:
+        since = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
+    try:
+        rows = artdb.snapshots(since)
+    except Exception as e:
+        _db_warn(e)
+        return jsonify({"series": {}, "error": True})
+    sums = {}
+    for r in rows:
+        if r["section_key"] in _IGNORED:
+            continue
+        point = sums.setdefault(r["kind"], {}).setdefault(r["day"], [0, 0])
+        point[0] += r["done"]
+        point[1] += r["total"]
+    series = {
+        kind: [[day, d, t] for day, (d, t) in sorted(points.items())]
+        for kind, points in sums.items()
+    }
+    return jsonify({"series": series})
+
+
+@app.route("/activity/redownload/<int:entry_id>", methods=["POST"])
+def activity_redownload(entry_id):
+    """Save again the image chosen in a past journal entry, from its original
+    source (Plex or the URL). No copy of the old file is kept, so this only
+    works while that source still serves the image."""
+    plex = get_plex()
+    if not plex:
+        return redirect(url_for("connect"))
+    target = _safe_next(request.form.get("next")) if request.form.get("next") else url_for("activity", tab="journal")
+    entry = None
+    try:
+        entry = artdb.get_journal(entry_id)
+    except Exception as e:
+        _db_warn(e)
+    if not entry or not entry.get("source"):
+        flash("This image has no source to download again (it was uploaded from a file).")
+        return redirect(target)
+    try:
+        item = plex.fetchItem(entry["rating_key"])
+        season_item = plex.fetchItem(entry["season_rating_key"]) if entry.get("season_rating_key") else None
+        base_dir = compute_asset_base_dir(item, season_item)
+        os.makedirs(base_dir, exist_ok=True)
+        _remember_dir(os.path.join(os.getcwd(), session["asset_dir"]), base_dir)
+        source = entry["source"]
+        ext = os.path.splitext(source.split("?")[0])[1] or (".png" if entry["art_type"] == "logo" else ".jpg")
+        filename = compute_asset_filename(item, entry["art_type"], entry.get("season"), entry.get("episode"), ext)
+        if source.startswith("http"):
+            img_url = source
+        else:
+            img_url = f"{session['base_url']}{source}&X-Plex-Token={get_token()}"
+        resp = requests.get(img_url, timeout=30)
+        resp.raise_for_status()
+        if not resp.headers.get("Content-Type", "").startswith("image/"):
+            raise ValueError("the source did not return an image")
+        path = os.path.join(base_dir, filename)
+        replaced = os.path.exists(path)
+        with open(path, "wb") as f:
+            f.write(resp.content)
+        after_asset_write(item, base_dir)
+        journal_log(
+            item,
+            {
+                "art_type": entry["art_type"], "season": entry.get("season"),
+                "episode": entry.get("episode"), "section_key": entry.get("section_key"),
+                "season_rating_key": entry.get("season_rating_key"),
+            },
+            base_dir, filename, "redo", source, replaced,
+        )
+        flash(f"Saved to {path}")
+    except Exception as e:
+        flash(f"Download again failed: {e}")
+    return redirect(target)
+
+
 # restore the last saved verification/dashboard state (see "persistence" above)
 load_state()
+_startup_snapshot()
 start_auto_refresh()
 
 
