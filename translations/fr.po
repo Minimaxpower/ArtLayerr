@@ -1289,3 +1289,14 @@ msgstr "🌙 Mode sombre"
 #: templates/items.html templates/libraries.html
 msgid "🔄 Update"
 msgstr "🔄 Actualiser"
+
+
+#: templates/items.html
+msgctxt "chip"
+msgid "B"
+msgstr "F"
+
+#: templates/items.html
+msgctxt "chip"
+msgid "P"
+msgstr "A"

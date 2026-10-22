@@ -28,6 +28,8 @@ PY_FILES = [os.path.join(ROOT, "app.py")]
 _STR = r"""("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')"""
 _T_SINGLE = re.compile(r"(?<![A-Za-z0-9_])_\(\s*" + _STR)
 _T_PLURAL = re.compile(r"(?<![A-Za-z0-9_])ngettext\(\s*" + _STR + r"\s*,\s*" + _STR)
+_T_CTX = re.compile(r"(?<![A-Za-z0-9_])pgettext\(\s*" + _STR + r"\s*,\s*" + _STR)
+SEP = i18n.CTX_SEP
 
 
 def _jinja_str(token):
@@ -52,6 +54,8 @@ def collect():
                 continue
             with open(os.path.join(TEMPLATES, fname), encoding="utf-8") as f:
                 text = f.read()
+            for m in _T_CTX.finditer(text):
+                add(_jinja_str(m.group(1)) + SEP + _jinja_str(m.group(2)), None, f"templates/{fname}")
             for m in _T_PLURAL.finditer(text):
                 add(_jinja_str(m.group(1)), _jinja_str(m.group(2)), f"templates/{fname}")
             for m in _T_SINGLE.finditer(text):
@@ -65,7 +69,9 @@ def collect():
                 continue
             name = node.func.id
             strs = [a.value for a in node.args if isinstance(a, ast.Constant) and isinstance(a.value, str)]
-            if name in ("tr", "N_") and node.args and isinstance(node.args[0], ast.Constant):
+            if name == "tp" and len(strs) >= 2:
+                add(strs[0] + SEP + strs[1], None, f"{rel}:{node.lineno}")
+            elif name in ("tr", "N_") and node.args and isinstance(node.args[0], ast.Constant):
                 add(node.args[0].value, None, f"{rel}:{node.lineno}")
             elif name == "ntr" and len(strs) >= 2 and isinstance(node.args[0], ast.Constant):
                 add(node.args[0].value, node.args[1].value, f"{rel}:{node.lineno}")
@@ -81,9 +87,14 @@ def _po_quote(text):
 
 
 def _entry(msgid, plural, refs, translated=None):
+    context = None
+    if SEP in msgid:
+        context, msgid = msgid.split(SEP, 1)
     out = ["#: " + " ".join(refs[:3])]
     if "%(" in msgid:
         out.append("#, python-format")
+    if context is not None:
+        out.append(f"msgctxt {_po_quote(context)}")
     out.append(f"msgid {_po_quote(msgid)}")
     if plural:
         out.append(f"msgid_plural {_po_quote(plural)}")
@@ -131,24 +142,25 @@ def check(found):
         missing = [k for k in found if k not in strings]
         stale = [k for k in strings if k not in found]
         bad = []
-        for msgid, info in found.items():
-            tr = strings.get(msgid)
+        for key, info in found.items():
+            msgid = key.split(SEP, 1)[-1]
+            tr = strings.get(key)
             if not tr:
                 continue
             forms = [msgid] + ([info["plural"]] if info["plural"] else [])
             for i, t in enumerate(tr):
                 src = forms[min(i, len(forms) - 1)] if info["plural"] else msgid
                 if sorted(_PH.findall(t)) != sorted(_PH.findall(src)) and not (info["plural"] and i == 0 and "%(n)s" not in t):
-                    bad.append((msgid, "placeholders differ"))
+                    bad.append((key, "placeholders differ"))
                 if sorted(re.findall(r"</?(\w+)", t)) != sorted(re.findall(r"</?(\w+)", src)):
-                    bad.append((msgid, "HTML tags differ"))
+                    bad.append((key, "HTML tags differ"))
             if info["plural"] and len(tr) < 2:
-                bad.append((msgid, "plural form missing"))
+                bad.append((key, "plural form missing"))
         print(f"{name}: {len(found) - len(missing)}/{len(found)} translated, {len(stale)} no longer used, {len(bad)} to fix")
         for k in missing[:50]:
-            print(f"   missing : {k[:100]!r}")
+            print(f"   missing : {k.replace(SEP, ' | ')[:100]!r}")
         for k, why in bad[:50]:
-            print(f"   {why}: {k[:100]!r}")
+            print(f"   {why}: {k.replace(SEP, ' | ')[:100]!r}")
         problems += len(missing) + len(bad)
     if not _po_files():
         print("no translations/*.po file found")

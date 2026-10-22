@@ -222,8 +222,8 @@
           <div class="card poster-card h-100 position-relative">
             <div class="position-absolute d-flex flex-column align-items-end gap-1" style="z-index: 2; top: 8px; right: 8px; max-width: 92%;">
               <div class="chip-group">
-                {{ flag('P', item.has_poster, _('Poster')) }}
-                {{ flag('B', item.has_background, _('Background')) }}
+                {{ flag(pgettext('chip', 'P'), item.has_poster, _('Poster')) }}
+                {{ flag(pgettext('chip', 'B'), item.has_background, _('Background')) }}
                 {% if show_logo %}{{ flag('L', item.has_logo, _('Logo')) }}{% endif %}
                 {% if show_square %}{{ flag('Q', item.has_square, _('Square')) }}{% endif %}
               </div>

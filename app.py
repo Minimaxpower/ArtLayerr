@@ -54,6 +54,10 @@ def tr(msgid, **kwargs):
     return _TR.gettext(current_lang(), msgid, **kwargs)
 
 
+def tp(context, msgid, **kwargs):
+    return _TR.pgettext(current_lang(), context, msgid, **kwargs)
+
+
 def ntr(singular, plural, n, **kwargs):
     return _TR.ngettext(current_lang(), singular, plural, n, **kwargs)
 
@@ -62,7 +66,7 @@ def N_(msgid):
     return msgid
 
 
-app.jinja_env.globals.update(_=tr, ngettext=ntr)
+app.jinja_env.globals.update(_=tr, ngettext=ntr, pgettext=tp)
 
 APP_VERSION = os.environ.get("APP_VERSION", "dev")
 

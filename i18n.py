@@ -6,6 +6,7 @@ once at start-up. English is the language of the source texts, so it needs no
 file. A language is available as soon as its .po file exists.
 
     _("Saved to %(path)s", path=p)               one text, optional placeholders
+    pgettext("chip", "B")                         a text that needs a context
     ngettext("%(n)s image", "%(n)s images", n)   singular / plural ("n" is added)
 
 A text that is missing from a language falls back to the English one.
@@ -15,6 +16,7 @@ import os
 import re
 
 DEFAULT_LANGUAGE = "en"
+CTX_SEP = "\x04"   # joins a context and a text in the catalog keys (gettext convention)
 _PLURAL_DEFAULT = "n != 1"
 
 
@@ -49,7 +51,9 @@ def parse_po(text):
         if cur is not None and cur.get("id") is not None:
             strs = [cur["str"][k] for k in sorted(cur["str"])]
             if not fuzzy and any(strs):
-                entries[cur["id"]] = strs
+                # an entry with a context (msgctxt) is stored under "context\x04text"
+                key = cur["ctx"] + CTX_SEP + cur["id"] if cur.get("ctx") else cur["id"]
+                entries[key] = strs
         cur, fuzzy = None, False
 
     for line in text.splitlines():
@@ -62,7 +66,11 @@ def parse_po(text):
                 fuzzy = True
             continue
         if s.startswith("msgctxt"):
-            field = "ctx"
+            if cur is not None and cur.get("str"):
+                flush()
+            cur = cur if cur is not None else {"id": None, "str": {}}
+            cur["ctx"] = _quoted(s)
+            field = ("ctx",)
             continue
         if s.startswith("msgid_plural"):
             field = ("plural",)
@@ -85,7 +93,9 @@ def parse_po(text):
             continue
         if s.startswith('"') and cur is not None and field:
             piece = _quoted(s)
-            if field[0] == "id":
+            if field[0] == "ctx":
+                cur["ctx"] += piece
+            elif field[0] == "id":
                 cur["id"] += piece
             elif field[0] == "plural":
                 cur["plural"] += piece
@@ -226,6 +236,13 @@ class Translator:
                 return self._fill(msgid, kwargs)
             return filled
         return text
+
+    def pgettext(self, lang, context, msgid, **kwargs):
+        """Same text, different meaning: the context tells the translator which one."""
+        cat = self.catalogs.get(lang)
+        found = cat["strings"].get(context + CTX_SEP + msgid) if cat else None
+        text = found[0] if found and found[0] else msgid
+        return self._fill(text, kwargs)
 
     def ngettext(self, lang, singular, plural, n, **kwargs):
         kwargs.setdefault("n", n)
