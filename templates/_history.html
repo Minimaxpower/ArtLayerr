@@ -5,7 +5,7 @@
     <table class="table table-sm align-middle mb-0">
       <thead>
         <tr class="small text-muted text-uppercase" style="letter-spacing: .05em;">
-          <th></th><th>When</th>{% if show_item %}<th>Item</th>{% endif %}<th>Image</th><th>File</th><th>How</th><th></th>
+          <th></th><th>{{ _("When") }}</th>{% if show_item %}<th>{{ _("Item") }}</th>{% endif %}<th>{{ _("Image") }}</th><th>{{ _("File") }}</th><th>{{ _("How") }}</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -20,15 +20,15 @@
             {% if show_item %}
               <td><a href="{{ e.open_url }}">{{ e.item_title }}</a>{% if e.section_title %}<div class="small text-muted">{{ e.section_title }}</div>{% endif %}</td>
             {% endif %}
-            <td class="small text-nowrap">{{ e.art_type|capitalize }}{% if e.level %} · {{ e.level }}{% endif %}</td>
+            <td class="small text-nowrap">{{ e.art_label }}{% if e.level %} · {{ e.level }}{% endif %}</td>
             <td class="small text-muted" style="overflow-wrap: anywhere;">{{ e.file }} · {{ e.size }}</td>
-            <td class="small text-nowrap">{{ e.action }}{% if e.replaced %} <span class="badge bg-secondary">replaced</span>{% endif %}</td>
+            <td class="small text-nowrap">{{ e.action }}{% if e.replaced %} <span class="badge bg-secondary">{{ _("replaced") }}</span>{% endif %}</td>
             <td class="text-end">
               <form method="post" action="{{ url_for('activity_redownload', entry_id=e.id) }}" class="m-0"
-                    onsubmit="return confirm('Download this image again? It replaces the current file.');">
+                    onsubmit='return confirm({{ _("Download this image again? It replaces the current file.")|tojson }});'>
                 <input type="hidden" name="next" value="{{ next_url }}">
                 <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap"
-                        {% if not e.can_redo %}disabled title="Uploaded from a file: there is no source to download it again from"{% else %}title="Fetch this image again from where it came from"{% endif %}>↻ Download again</button>
+                        {% if not e.can_redo %}disabled title="{{ _("Uploaded from a file: there is no source to download it again from") }}"{% else %}title="{{ _("Fetch this image again from where it came from") }}"{% endif %}>{{ _("↻ Download again") }}</button>
               </form>
             </td>
           </tr>

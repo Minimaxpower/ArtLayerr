@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0">Missing {{ unit }}</h2>
-  <a href="{{ url_for('libraries') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+  <h2 class="mb-0">{{ title }}</h2>
+  <a href="{{ url_for('libraries') }}" class="btn btn-sm btn-outline-secondary">{{ _("← Dashboard") }}</a>
 </div>
-<p class="text-muted">Pick a library to see what is missing:</p>
+<p class="text-muted">{{ _("Pick a library to see what is missing:") }}</p>
 <div class="row g-3">
   {% for lib in libs %}
     <div class="col-md-6 col-lg-4">
@@ -12,9 +12,9 @@
         <div class="card p-3 library-card">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <strong>{{ lib.title }}</strong>
-            <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
+            <span class="badge bg-secondary text-uppercase">{{ _('movie') if lib.type == 'movie' else _('show') }}</span>
           </div>
-          <div class="small text-muted">{{ lib.missing }} missing out of {{ lib.of }} {{ unit }}</div>
+          <div class="small text-muted">{{ ngettext("%(missing)s missing out of %(of)s %(unit)s", "%(missing)s missing out of %(of)s %(unit)s", lib.missing, missing=lib.missing, of=lib.of, unit=unit) }}</div>
         </div>
       </a>
     </div>

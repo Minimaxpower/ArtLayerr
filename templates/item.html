@@ -12,89 +12,89 @@
 
 <div class="d-flex flex-wrap gap-2 mb-3">
   {% if plex_web_url %}
-    <a href="{{ plex_web_url }}" class="btn btn-sm btn-outline-primary">View in Plex ↗</a>
+    <a href="{{ plex_web_url }}" class="btn btn-sm btn-outline-primary">{{ _("View in Plex ↗") }}</a>
   {% endif %}
   {% if imdb_url %}
-    <a href="{{ imdb_url }}" class="btn btn-sm btn-outline-warning">View in IMDb ↗</a>
+    <a href="{{ imdb_url }}" class="btn btn-sm btn-outline-warning">{{ _("View in IMDb ↗") }}</a>
   {% endif %}
   {% if tvdb_url %}
-    <a href="{{ tvdb_url }}" class="btn btn-sm btn-outline-primary">View in TVDB ↗</a>
+    <a href="{{ tvdb_url }}" class="btn btn-sm btn-outline-primary">{{ _("View in TVDB ↗") }}</a>
   {% endif %}
   {% if tmdb_url %}
-    <a href="{{ tmdb_url }}" class="btn btn-sm btn-outline-primary">View in TMDB ↗</a>
+    <a href="{{ tmdb_url }}" class="btn btn-sm btn-outline-primary">{{ _("View in TMDB ↗") }}</a>
   {% endif %}
   {% if mediux_url %}
-    <a href="{{ mediux_url }}" class="btn btn-sm btn-outline-primary">View in Mediux ↗</a>
+    <a href="{{ mediux_url }}" class="btn btn-sm btn-outline-primary">{{ _("View in Mediux ↗") }}</a>
   {% endif %}
 </div>
 
 <div class="mb-3">
   {% if item.has_poster is none %}
-    <span class="badge bg-light text-dark">? Poster</span>
+    <span class="badge bg-light text-dark">{{ _("? Poster") }}</span>
   {% elif item.has_poster %}
-    <span class="badge bg-success">✓ Poster</span>
+    <span class="badge bg-success">{{ _("✓ Poster") }}</span>
   {% else %}
-    <span class="badge bg-secondary">— Poster</span>
+    <span class="badge bg-secondary">{{ _("— Poster") }}</span>
   {% endif %}
   {% if item.has_background is none %}
-    <span class="badge bg-light text-dark">? Background</span>
+    <span class="badge bg-light text-dark">{{ _("? Background") }}</span>
   {% elif item.has_background %}
-    <span class="badge bg-success">✓ Background</span>
+    <span class="badge bg-success">{{ _("✓ Background") }}</span>
   {% else %}
-    <span class="badge bg-secondary">— Background</span>
+    <span class="badge bg-secondary">{{ _("— Background") }}</span>
   {% endif %}
   {% if show_logo %}
     {% if item.has_logo is none %}
-      <span class="badge bg-light text-dark">? Logo</span>
+      <span class="badge bg-light text-dark">{{ _("? Logo") }}</span>
     {% elif item.has_logo %}
-      <span class="badge bg-success">✓ Logo</span>
+      <span class="badge bg-success">{{ _("✓ Logo") }}</span>
     {% else %}
-      <span class="badge bg-secondary">— Logo</span>
+      <span class="badge bg-secondary">{{ _("— Logo") }}</span>
     {% endif %}
   {% endif %}
   {% if show_square %}
     {% if item.has_square is none %}
-      <span class="badge bg-light text-dark">? Square</span>
+      <span class="badge bg-light text-dark">{{ _("? Square") }}</span>
     {% elif item.has_square %}
-      <span class="badge bg-success">✓ Square</span>
+      <span class="badge bg-success">{{ _("✓ Square") }}</span>
     {% else %}
-      <span class="badge bg-secondary">— Square</span>
+      <span class="badge bg-secondary">{{ _("— Square") }}</span>
     {% endif %}
   {% endif %}
   {% if section.type == 'show' %}
     {% if item.custom_seasons is none %}
-      <span class="badge bg-light text-dark">? Seasons</span>
+      <span class="badge bg-light text-dark">{{ _("? Seasons") }}</span>
     {% elif item.custom_seasons_display %}
       <span class="badge {{ 'bg-success' if item.seasons_complete else 'bg-info text-dark' }}">{{ item.custom_seasons_display }}</span>
     {% else %}
-      <span class="badge bg-secondary">— Seasons</span>
+      <span class="badge bg-secondary">{{ _("— Seasons") }}</span>
     {% endif %}
     {% if item.custom_episode_count is none %}
-      <span class="badge bg-light text-dark">? Ep.</span>
+      <span class="badge bg-light text-dark">{{ _("? Ep.") }}</span>
     {% elif item.custom_episode_count > 0 %}
-      <span class="badge {{ 'bg-success' if item.episodes_complete else 'bg-info text-dark' }}">{{ item.custom_episode_count }} ep.</span>
+      <span class="badge {{ 'bg-success' if item.episodes_complete else 'bg-info text-dark' }}">{{ _("%(custom_episode_count)s ep.", custom_episode_count=item.custom_episode_count) }}</span>
     {% else %}
-      <span class="badge bg-secondary">— Ep.</span>
+      <span class="badge bg-secondary">{{ _("— Ep.") }}</span>
     {% endif %}
   {% endif %}
 </div>
 
 <div class="d-flex justify-content-between mb-3">
   <div>
-    <a href="{{ url_for('browse', section_key=section.key, page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">First Item</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page-1 if item_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Previous Item</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page+1 if item_page<pages else pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Next Item</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Last Item</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("First Item") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page-1 if item_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Previous Item") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page+1 if item_page<pages else pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Next Item") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Last Item") }}</a>
   </div>
   <form class="d-inline" method="get">
     <input type="hidden" name="page" value="{{ item_page }}">
     <input type="hidden" name="missing_type" value="{{ missing_type }}">
-    <label>Art Type</label>
+    <label>{{ _("Art Type") }}</label>
     <select name="art_type" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
-      <option value="poster" {% if art_type=='poster' %}selected{% endif %}>Poster</option>
-      <option value="background" {% if art_type=='background' %}selected{% endif %}>Background</option>
-      {% if show_logo or art_type == 'logo' %}<option value="logo" {% if art_type=='logo' %}selected{% endif %}>Logo</option>{% endif %}
-      {% if show_square or art_type == 'square' %}<option value="square" {% if art_type=='square' %}selected{% endif %}>Square</option>{% endif %}
+      <option value="poster" {% if art_type=='poster' %}selected{% endif %}>{{ _("Poster") }}</option>
+      <option value="background" {% if art_type=='background' %}selected{% endif %}>{{ _("Background") }}</option>
+      {% if show_logo or art_type == 'logo' %}<option value="logo" {% if art_type=='logo' %}selected{% endif %}>{{ _("Logo") }}</option>{% endif %}
+      {% if show_square or art_type == 'square' %}<option value="square" {% if art_type=='square' %}selected{% endif %}>{{ _("Square") }}</option>{% endif %}
     </select>
   </form>
 </div>
@@ -109,20 +109,20 @@
     <li class="nav-item">
       <a class="nav-link {% if not season %}active{% endif %}"
          href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, art_page=1, missing_type=missing_type if missing_type else none) }}">
-        Show
+        {{ _("Show") }}
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link {% if season and not episode %}active{% endif %}"
          href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=tab_art, art_page=1, season=current_season_num, missing_type=missing_type if missing_type else none) }}">
-        Seasons
+        {{ _("Seasons") }}
       </a>
     </li>
     <li class="nav-item">
       {# episode='first' is resolved server-side on click, so building this link costs no Plex call #}
       <a class="nav-link {% if episode %}active{% endif %}"
          href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=tab_art, art_page=1, season=current_season_num, episode='first', missing_type=missing_type if missing_type else none) }}">
-        Episodes
+        {{ _("Episodes") }}
       </a>
     </li>
   </ul>
@@ -135,21 +135,21 @@
     <input type="hidden" name="missing_type" value="{{ missing_type }}">
     <div class="row g-2">
       <div class="col-auto">
-        <label>Season</label>
+        <label>{{ _("Season") }}</label>
         <select name="season" class="form-select" onchange="this.form.submit()">
-          <option value="">Show Level{% if local_files.show_level %} ✓{% endif %}</option>
+          <option value="">{{ _("Show Level") }}{% if local_files.show_level %} ✓{% endif %}</option>
           {% for s in show_seasons %}
-            <option value="{{ s.seasonNumber }}" {% if season and season|int==s.seasonNumber %}selected{% endif %}>Season {{ '%02d'|format(s.seasonNumber) }}{% if s.seasonNumber in local_files.seasons %} ✓{% endif %}</option>
+            <option value="{{ s.seasonNumber }}" {% if season and season|int==s.seasonNumber %}selected{% endif %}>{{ _('Season %(n)s', n='%02d'|format(s.seasonNumber)) }}{% if s.seasonNumber in local_files.seasons %} ✓{% endif %}</option>
           {% endfor %}
         </select>
       </div>
       {% if season %}
       <div class="col-auto">
-        <label>Episode</label>
+        <label>{{ _("Episode") }}</label>
         <select name="episode" class="form-select" onchange="this.form.submit()">
-          <option value="">Season Level</option>
+          <option value="">{{ _("Season Level") }}</option>
           {% for e in season_episodes %}
-            <option value="{{ e.index }}" {% if episode|int==e.index %}selected{% endif %}>Episode {{ '%02d'|format(e.index) }}{% if (season|int, e.index) in local_files.episodes %} ✓{% endif %}</option>
+            <option value="{{ e.index }}" {% if episode|int==e.index %}selected{% endif %}>{{ _('Episode %(n)s', n='%02d'|format(e.index)) }}{% if (season|int, e.index) in local_files.episodes %} ✓{% endif %}</option>
           {% endfor %}
         </select>
       </div>
@@ -182,7 +182,7 @@
 
 {% if total_art == 0 and art_type in ['logo', 'square'] %}
   <div class="alert alert-secondary">
-    Plex does not offer any {{ 'logo' if art_type == 'logo' else 'square' }} image for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below.
+    {% if art_type == 'logo' %}{{ _("Plex does not offer any logo image for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below.") }}{% else %}{{ _("Plex does not offer any square image for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below.") }}{% endif %}
   </div>
 {% endif %}
 
@@ -193,40 +193,40 @@
   <div class="card p-3 mb-3">
     <div class="d-flex flex-wrap gap-4 align-items-start">
       <div>
-        <div class="small text-muted text-uppercase mb-1" style="letter-spacing: .05em;">On Plex</div>
+        <div class="small text-muted text-uppercase mb-1" style="letter-spacing: .05em;">{{ _("On Plex") }}</div>
         {% if plex_current %}
           {% set cur_url = plex_current.key if plex_current.key.startswith('http') else url_for('plex_img', path=plex_current.key) %}
-          <img src="{{ cur_url }}" class="rounded" style="{{ thumb_style }}" alt="Image shown on Plex" onclick="showImagePreview('{{ cur_url|e }}')">
+          <img src="{{ cur_url }}" class="rounded" style="{{ thumb_style }}" alt="{{ _("Image shown on Plex") }}" onclick="showImagePreview('{{ cur_url|e }}')">
         {% else %}
-          <div class="text-muted small">Nothing selected</div>
+          <div class="text-muted small">{{ _("Nothing selected") }}</div>
         {% endif %}
       </div>
       <div>
-        <div class="small text-muted text-uppercase mb-1" style="letter-spacing: .05em;">In the assets folder</div>
+        <div class="small text-muted text-uppercase mb-1" style="letter-spacing: .05em;">{{ _("In the assets folder") }}</div>
         {% if art_panel.file %}
-          <img src="{{ art_panel.url }}" class="rounded" style="{{ thumb_style }}" alt="Image in the assets folder" onclick="showImagePreview('{{ art_panel.url|e }}')">
+          <img src="{{ art_panel.url }}" class="rounded" style="{{ thumb_style }}" alt="{{ _("Image in the assets folder") }}" onclick="showImagePreview('{{ art_panel.url|e }}')">
           <div class="small text-muted mt-1">{{ art_panel.file }} · {{ art_panel.when }}</div>
         {% else %}
-          <div class="text-muted small">Nothing downloaded yet for this image</div>
+          <div class="text-muted small">{{ _("Nothing downloaded yet for this image") }}</div>
         {% endif %}
       </div>
       <div class="align-self-center" style="max-width: 380px;">
         {% if art_panel.state == 'both' %}
-          <span class="badge bg-success st-ok"><span class="cue-ic" aria-hidden="true">✓</span>Plex + Assets</span>
+          <span class="badge bg-success st-ok"><span class="cue-ic" aria-hidden="true">✓</span>{{ _("Plex + Assets") }}</span>
           {% if art_panel.shown %}
-            <div class="small text-muted mt-1">This exact file is in Plex and is the image it shows.</div>
+            <div class="small text-muted mt-1">{{ _("This exact file is in Plex and is the image it shows.") }}</div>
           {% else %}
-            <div class="small text-muted mt-1">This file was sent to Plex (Kometa applied it). Plex now shows a later image, for example the same one with your overlays.</div>
+            <div class="small text-muted mt-1">{{ _("This file was sent to Plex (Kometa applied it). Plex now shows a later image, for example the same one with your overlays.") }}</div>
           {% endif %}
         {% elif art_panel.state == 'assets' %}
-          <span class="badge bg-warning text-dark st-part"><span class="cue-ic" aria-hidden="true">◐</span>In assets, not on Plex yet</span>
-          <div class="small text-muted mt-1">This file has not been sent to Plex: Kometa has not run since it was saved.</div>
+          <span class="badge bg-warning text-dark st-part"><span class="cue-ic" aria-hidden="true">◐</span>{{ _("In assets, not on Plex yet") }}</span>
+          <div class="small text-muted mt-1">{{ _("This file has not been sent to Plex: Kometa has not run since it was saved.") }}</div>
         {% elif art_panel.state == 'unknown' %}
-          <span class="badge bg-secondary"><span class="cue-ic" aria-hidden="true">·</span>In assets</span>
-          <div class="small text-muted mt-1">Plex gave no list of images to compare this file with.</div>
+          <span class="badge bg-secondary"><span class="cue-ic" aria-hidden="true">·</span>{{ _("In assets") }}</span>
+          <div class="small text-muted mt-1">{{ _("Plex gave no list of images to compare this file with.") }}</div>
         {% else %}
-          <span class="badge bg-secondary st-no"><span class="cue-ic" aria-hidden="true">–</span>Plex only</span>
-          <div class="small text-muted mt-1">Pick an image below and it will be saved to the assets folder.</div>
+          <span class="badge bg-secondary st-no"><span class="cue-ic" aria-hidden="true">–</span>{{ _("Plex only") }}</span>
+          <div class="small text-muted mt-1">{{ _("Pick an image below and it will be saved to the assets folder.") }}</div>
         {% endif %}
       </div>
     </div>
@@ -238,7 +238,7 @@
 {% if art_history %}
   <div class="card p-3 mb-3">
     <details>
-      <summary class="small text-uppercase text-muted" style="letter-spacing: .05em; cursor: pointer;">History <span class="opacity-75">({{ art_history|length }})</span></summary>
+      <summary class="small text-uppercase text-muted" style="letter-spacing: .05em; cursor: pointer;">{{ _("History") }} <span class="opacity-75">({{ art_history|length }})</span></summary>
       <div class="mt-2">
         {{ history_table(art_history, request.path ~ ('?' ~ request.query_string.decode('utf-8', 'replace') if request.query_string else ''), false) }}
       </div>
@@ -259,7 +259,7 @@
       <input type="hidden" name="art_type" value="{{ art_type }}">
       <input type="hidden" name="missing_type" value="{{ missing_type }}">
       <input type="url" name="image_url" class="form-control" placeholder="https://.../image.jpg" required>
-      <button type="submit" class="btn btn-primary text-nowrap">From a URL</button>
+      <button type="submit" class="btn btn-primary text-nowrap">{{ _("From a URL") }}</button>
     </form>
   </div>
   <div class="col-md-6">
@@ -274,18 +274,18 @@
       <input type="hidden" name="art_type" value="{{ art_type }}">
       <input type="hidden" name="missing_type" value="{{ missing_type }}">
       <input type="file" name="image_file" class="form-control" accept="image/*" required>
-      <button type="submit" class="btn btn-primary text-nowrap">Upload</button>
+      <button type="submit" class="btn btn-primary text-nowrap">{{ _("Upload") }}</button>
     </form>
   </div>
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">First</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page-1 if art_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Prev</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page+1 if art_page<art_pages else art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Next</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Last</a>
-    <span class="ms-2 text-muted">Page {{ art_page }} / {{ art_pages }}</span>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("First") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page-1 if art_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Prev") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page+1 if art_page<art_pages else art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Next") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Last") }}</a>
+    <span class="ms-2 text-muted">{{ _("Page %(art_page)s / %(art_pages)s", art_page=art_page, art_pages=art_pages) }}</span>
   </div>
   <form method="get" class="d-inline">
     <input type="hidden" name="page" value="{{ item_page }}">
@@ -294,7 +294,7 @@
     <input type="hidden" name="art_type" value="{{ art_type }}">
     <input type="hidden" name="missing_type" value="{{ missing_type }}">
     <input type="number" name="art_page" min="1" max="{{ art_pages }}" value="{{ art_page }}" class="form-control d-inline-block" style="width: 80px;">
-    <button class="btn btn-secondary btn-sm">Go</button>
+    <button class="btn btn-secondary btn-sm">{{ _("Go") }}</button>
   </form>
 </div>
 
@@ -311,11 +311,11 @@
              style="z-index: 3; top: 8px; left: 8px; width: 28px; height: 28px;">
           <input class="compare-checkbox" type="checkbox"
                  data-img-key="{{ img.key|e }}" data-img-url="{{ img_url|e }}"
-                 title="Add to compare"
+                 title="{{ _("Add to compare") }}"
                  style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
         </div>
         {% if img.selected %}
-          <span class="badge bg-success position-absolute m-2" style="z-index: 3; top: 0; right: 0;">✓ Shown on Plex</span>
+          <span class="badge bg-success position-absolute m-2" style="z-index: 3; top: 0; right: 0;">{{ _("✓ Shown on Plex") }}</span>
         {% endif %}
         <img src="{{ img_url }}" class="card-img-top poster-img" role="button"{% if art_type == 'logo' %} style="aspect-ratio: 16 / 9; object-fit: contain; padding: 12px; background: rgba(128,128,128,.15);"{% endif %}
              onclick="showImagePreview('{{ img_url|e }}')">
@@ -331,7 +331,7 @@
             <input type="hidden" name="art_type" value="{{ art_type }}">
             <input type="hidden" name="missing_type" value="{{ missing_type }}">
             <input type="hidden" name="img_key" value="{{ img.key }}">
-            <button type="submit" class="btn btn-primary btn-sm w-100">Download</button>
+            <button type="submit" class="btn btn-primary btn-sm w-100">{{ _("Download") }}</button>
           </form>
         </div>
       </div>
@@ -341,11 +341,11 @@
 
 <div class="d-flex justify-content-between align-items-center mt-3">
   <div>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">First</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page-1 if art_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Prev</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page+1 if art_page<art_pages else art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Next</a>
-    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">Last</a>
-    <span class="ms-2 text-muted">Page {{ art_page }} / {{ art_pages }}</span>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("First") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page-1 if art_page>1 else 1, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Prev") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_page+1 if art_page<art_pages else art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Next") }}</a>
+    <a href="{{ url_for('browse', section_key=section.key, page=item_page, art_type=art_type, season=season, episode=episode, art_page=art_pages, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary btn-sm">{{ _("Last") }}</a>
+    <span class="ms-2 text-muted">{{ _("Page %(art_page)s / %(art_pages)s", art_page=art_page, art_pages=art_pages) }}</span>
   </div>
   <form method="get" class="d-inline">
     <input type="hidden" name="page" value="{{ item_page }}">
@@ -354,7 +354,7 @@
     <input type="hidden" name="art_type" value="{{ art_type }}">
     <input type="hidden" name="missing_type" value="{{ missing_type }}">
     <input type="number" name="art_page" min="1" max="{{ art_pages }}" value="{{ art_page }}" class="form-control d-inline-block" style="width: 80px;">
-    <button class="btn btn-secondary btn-sm">Go</button>
+    <button class="btn btn-secondary btn-sm">{{ _("Go") }}</button>
   </form>
 </div>
 
@@ -362,7 +362,7 @@
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content bg-dark">
       <div class="modal-header border-0">
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ _("Close") }}"></button>
       </div>
       <div class="modal-body text-center pt-0">
         <img id="imagePreviewModalImg" src="" class="img-fluid" style="max-height: 85vh;">
@@ -374,15 +374,15 @@
 <button id="compareButton" type="button" class="btn btn-primary shadow"
         style="position: fixed; bottom: 20px; right: 20px; z-index: 1050; display: none;"
         onclick="openCompareModal()">
-  Compare (<span id="compareCount">0</span>)
+  {{ _("Compare (%(count)s)", count='<span id="compareCount">0</span>')|safe }}
 </button>
 
 <div class="modal fade" id="compareModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen">
     <div class="modal-content bg-dark">
       <div class="modal-header border-0">
-        <h5 class="modal-title text-white">Compare the posters</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title text-white">{{ _("Compare the posters") }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ _("Close") }}"></button>
       </div>
       <div class="modal-body d-flex align-items-center">
         <div id="compareModalBody" class="d-flex gap-3 justify-content-center flex-wrap w-100"></div>
@@ -401,6 +401,8 @@ function showImagePreview(url) {
 // (poster / background / logo / square, and show / season / episode level): it
 // survives changing art_page, but a poster ticked earlier can no longer be sent
 // as a logo from the comparison window.
+const T_COMPARE_MAX = {{ _("Maximum %(max)s posters to compare at the same time.")|tojson }};
+const T_CHOOSE = {{ _("Choose this poster")|tojson }};
 const COMPARE_KEY = "compare_{{ item.ratingKey }}_{{ art_type }}_{{ season }}_{{ episode }}";
 const COMPARE_MAX = 4;
 const DOWNLOAD_CONTEXT = {
@@ -450,7 +452,7 @@ function initCompareCheckboxes() {
       if (cb.checked) {
         if (current.length >= COMPARE_MAX) {
           cb.checked = false;
-          alert("Maximum " + COMPARE_MAX + " posters to compare at the same time.");
+          alert(T_COMPARE_MAX.replace('%(max)s', COMPARE_MAX));
           return;
         }
         current.push({ img_key: cb.dataset.imgKey, img_url: cb.dataset.imgUrl });
@@ -487,7 +489,7 @@ function openCompareModal() {
       '<input type="hidden" name="art_type" value="' + DOWNLOAD_CONTEXT.art_type + '">' +
       '<input type="hidden" name="missing_type" value="' + DOWNLOAD_CONTEXT.missing_type + '">' +
       '<input type="hidden" name="img_key" value="' + entry.img_key + '">' +
-      '<button type="submit" class="btn btn-success w-100">Choose this poster</button>' +
+      '<button type="submit" class="btn btn-success w-100">' + T_CHOOSE + '</button>' +
       '</form>';
     body.appendChild(col);
   });

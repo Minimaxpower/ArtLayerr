@@ -31,9 +31,38 @@ from flask import Flask, Response, abort, flash, jsonify, make_response, redirec
 from plexapi.server import PlexServer
 
 import artdb
+import i18n
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
+
+# ---- translations -------------------------------------------------------------
+# Texts are written in English in the code: tr("...") translates one, ntr() picks
+# a singular / plural form, and N_("...") only marks a text that is stored in a
+# constant and translated later, when it is shown. translations/<code>.po holds
+# the other languages (see i18n.py); the choice is a cookie set in the Settings.
+_TR = i18n.Translator(os.path.join(os.path.dirname(os.path.abspath(__file__)), "translations"))
+LANG_COOKIE = "artlayerr_lang"
+
+
+def current_lang():
+    value = request.cookies.get(LANG_COOKIE) if request else None
+    return value if value in _TR.codes else i18n.DEFAULT_LANGUAGE
+
+
+def tr(msgid, **kwargs):
+    return _TR.gettext(current_lang(), msgid, **kwargs)
+
+
+def ntr(singular, plural, n, **kwargs):
+    return _TR.ngettext(current_lang(), singular, plural, n, **kwargs)
+
+
+def N_(msgid):
+    return msgid
+
+
+app.jinja_env.globals.update(_=tr, ngettext=ntr)
 
 APP_VERSION = os.environ.get("APP_VERSION", "dev")
 
@@ -195,6 +224,8 @@ def inject_art_prefs():
         "show_square": "square" in enabled,
         "cb_mode": _pref_choice("cb", CB_MODES, "off"),
         "cue_mode": _pref_choice("cue", CUE_MODES, "none"),
+        "lang": current_lang(),
+        "languages": _TR.languages(),
         "art_scanned": scanned,
         # switched on, but the saved scan predates logo/square support: one Update fixes it
         "art_pending": bool(enabled) and checked and not scanned,
@@ -221,6 +252,13 @@ def save_settings():
             max_age=PREF_COOKIE_MAX_AGE,
             samesite="Lax",
         )
+    lang = request.form.get("lang")
+    resp.set_cookie(
+        LANG_COOKIE,
+        lang if lang in _TR.codes else i18n.DEFAULT_LANGUAGE,
+        max_age=PREF_COOKIE_MAX_AGE,
+        samesite="Lax",
+    )
     return resp
 
 
@@ -249,7 +287,7 @@ def login():
     if request.method == "POST":
         ip = request.remote_addr or "?"
         if len(_recent_failures(ip)) >= LOGIN_MAX_FAILURES:
-            error = "Too many attempts. Try again in a few minutes."
+            error = tr("Too many attempts. Try again in a few minutes.")
         else:
             supplied = request.form.get("password", "")
             if hmac.compare_digest(supplied.encode("utf-8"), APP_PASSWORD.encode("utf-8")):
@@ -259,7 +297,7 @@ def login():
                 session["authenticated"] = True
                 return redirect(next_url)
             _LOGIN_FAILURES.setdefault(ip, []).append(time.time())
-            error = "Wrong password."
+            error = tr("Wrong password.")
     return render_template("login.html", error=error, next_url=next_url)
 
 
@@ -280,12 +318,12 @@ ALPHABET.insert(0, "0-9")
 # URL: the item page's Previous/Next must walk the list in the same order the
 # grid shows, and both read the same cookie.
 SORT_OPTIONS = {
-    "title": "Title A–Z",
-    "title_desc": "Title Z–A",
-    "added": "Recently added",
-    "added_asc": "Oldest added",
-    "year_desc": "Year (newest)",
-    "year_asc": "Year (oldest)",
+    "title": N_("Title A–Z"),
+    "title_desc": N_("Title Z–A"),
+    "added": N_("Recently added"),
+    "added_asc": N_("Oldest added"),
+    "year_desc": N_("Year (newest)"),
+    "year_asc": N_("Year (oldest)"),
 }
 DEFAULT_SORT = "title"
 PER_PAGE_OPTIONS = [12, 24, 48, 96]  # all multiples of 6: no orphan row on the desktop grid
@@ -687,12 +725,12 @@ _MISSING_CACHE_TTL = 300  # seconds
 
 # which attribute each filter type checks, and whether it's show-only
 MISSING_TYPES = {
-    "poster": {"label": "posters", "show_only": False},
-    "background": {"label": "backgrounds", "show_only": False},
-    "logo": {"label": "logos", "show_only": False},
-    "square": {"label": "square", "show_only": False},
-    "season": {"label": "seasons", "show_only": True},
-    "episode": {"label": "episodes", "show_only": True},
+    "poster": {"label": N_("posters"), "show_only": False},
+    "background": {"label": N_("backgrounds"), "show_only": False},
+    "logo": {"label": N_("logos"), "show_only": False},
+    "square": {"label": N_("square"), "show_only": False},
+    "season": {"label": N_("seasons"), "show_only": True},
+    "episode": {"label": N_("episodes"), "show_only": True},
 }
 
 
@@ -983,9 +1021,9 @@ def journal_log(item, ctx, base_dir, filename, action, source, replaced):
 
 def _human_size(n):
     n = float(n or 0)
-    for unit in ("B", "KB", "MB", "GB"):
+    for unit in (N_("B"), N_("KB"), N_("MB"), N_("GB")):
         if n < 1024 or unit == "GB":
-            return f"{int(n)} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+            return f"{int(n)} {tr(unit)}" if unit == "B" else f"{n:.1f} {tr(unit)}"
         n /= 1024
 
 
@@ -994,13 +1032,14 @@ def _level_label(season, episode):
         if episode not in (None, ""):
             return f"S{int(season):02d}E{int(episode):02d}"
         if season not in (None, ""):
-            return "Specials" if int(season) == 0 else f"Season {int(season)}"
+            return tr("Specials") if int(season) == 0 else tr("Season %(n)s", n=int(season))
     except (TypeError, ValueError):
         pass
     return ""
 
 
-_ACTION_LABELS = {"plex": "Download", "url": "From URL", "upload": "Upload", "redo": "Re-download"}
+_ACTION_LABELS = {"plex": N_("Download"), "url": N_("From URL"), "upload": N_("Upload"), "redo": N_("Re-download")}
+ART_LABELS = {"poster": N_("Poster"), "background": N_("Background"), "logo": N_("Logo"), "square": N_("Square")}
 
 
 def journal_view(row):
@@ -1021,7 +1060,8 @@ def journal_view(row):
         "level": _level_label(row.get("season"), row.get("episode")),
         "file": row.get("file") or "",
         "size": _human_size(row.get("size")),
-        "action": _ACTION_LABELS.get(row.get("action"), row.get("action") or ""),
+        "action": tr(_ACTION_LABELS[row["action"]]) if row.get("action") in _ACTION_LABELS else (row.get("action") or ""),
+        "art_label": tr(ART_LABELS.get(row["art_type"], row["art_type"])),
         "replaced": bool(row.get("replaced")),
         "preview": preview,
         "can_redo": bool(source),
@@ -1285,7 +1325,7 @@ def parse_mediux_yaml(yml_text):
     try:
         import yaml
     except ImportError:
-        return None, (
+        return None, tr(
             "PyYAML is not installed in the container: add \"PyYAML\" to "
             "requirements.txt and rebuild. Until then, only the show-level "
             "comparison (without the season/episode detail) is available."
@@ -1317,12 +1357,12 @@ def parse_mediux_yaml(yml_text):
         data = yaml.load(yml_text, Loader=DuplicateAwareLoader)
     except yaml.YAMLError as e:
         mark = getattr(e, "problem_mark", None)
-        where = f" (line {mark.line + 1}, column {mark.column + 1})" if mark else ""
+        where = tr(" (line %(line)s, column %(column)s)", line=mark.line + 1, column=mark.column + 1) if mark else ""
         problem = getattr(e, "problem", None) or str(e)
-        return None, f"YAML syntax error{where}: {problem}", []
+        return None, tr("YAML syntax error%(where)s: %(problem)s", where=where, problem=problem), []
 
     warnings = [
-        f"Duplicate key \"{key}\" at line {line}: only the last occurrence is used."
+        tr("Duplicate key \"%(key)s\" at line %(line)s: only the last occurrence is used.", key=key, line=line)
         for key, line in duplicates
     ]
     return data, None, warnings
@@ -1512,7 +1552,7 @@ def connect():
                 default_base_url=base_url,
                 token_preset=bool(env_token),
                 default_asset_dir=request.form.get("asset_dir", "") or env_asset_dir,
-                error="A Plex token is required for this URL.",
+                error=tr("A Plex token is required for this URL."),
             )
         session["base_url"] = base_url
         set_token(token, from_env=use_env_token)
@@ -1585,7 +1625,7 @@ def libraries():
     if _DASHBOARD_CACHE["computed_at"]:
         computed_at_display = datetime.datetime.fromtimestamp(
             _DASHBOARD_CACHE["computed_at"]
-        ).strftime("%d/%m/%Y at %H:%M")
+        ).strftime(tr("%d/%m/%Y at %H:%M"))
 
     return render_template(
         "libraries.html",
@@ -1626,12 +1666,21 @@ MISSING_RING_FIELDS = {
     "episode": ("episode_done", "episode_total"),
 }
 MISSING_UNITS = {
-    "poster": "posters",
-    "background": "backgrounds",
-    "logo": "logos",
-    "square": "square",
-    "season": "seasons",
-    "episode": "episodes",
+    "poster": N_("posters"),
+    "background": N_("backgrounds"),
+    "logo": N_("logos"),
+    "square": N_("square"),
+    "season": N_("seasons"),
+    "episode": N_("episodes"),
+}
+# the page title, written out in full because the word order differs between languages
+MISSING_TITLES = {
+    "poster": N_("Missing posters"),
+    "background": N_("Missing backgrounds"),
+    "logo": N_("Missing logos"),
+    "square": N_("Missing square"),
+    "season": N_("Missing seasons"),
+    "episode": N_("Missing episodes"),
 }
 
 
@@ -1660,7 +1709,7 @@ def missing_overview(missing_type):
             libs.append({**lib, "missing": total - done, "of": total})
 
     if not libs:
-        flash("Nothing missing here — everything is covered.")
+        flash(tr("Nothing missing here — everything is covered."))
         return redirect(url_for("libraries"))
     if len(libs) == 1:
         return redirect(url_for("list_items", section_key=libs[0]["key"], missing_type=missing_type))
@@ -1668,7 +1717,8 @@ def missing_overview(missing_type):
         "missing_overview.html",
         libs=libs,
         missing_type=missing_type,
-        unit=MISSING_UNITS[missing_type],
+        unit=tr(MISSING_UNITS[missing_type]),
+        title=tr(MISSING_TITLES[missing_type]),
     )
 
 
@@ -1807,7 +1857,7 @@ def export_missing():
         back = url_for("libraries")
 
     if _ASSET_CACHE["computed_at"] is None:
-        flash("Run a check first (\U0001F504 Update) before exporting.")
+        flash(tr("Run a check first (🔄 Update) before exporting."))
         return redirect(back)
 
     art_types = active_art_types()
@@ -1817,7 +1867,7 @@ def export_missing():
         if section_key:
             sections = [s for s in sections if str(s.key) == section_key]
             if not sections:
-                flash("Library not found.")
+                flash(tr("Library not found."))
                 return redirect(url_for("libraries"))
         else:
             # the dashboard export follows the dashboard totals: ignored libraries stay out
@@ -1826,11 +1876,11 @@ def export_missing():
         for s in sections:
             rows += collect_missing_rows(s, missing_type, art_types)
     except requests.exceptions.RequestException:
-        flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
+        flash(tr("Plex took too long to respond (busy server or large library). Try again in a moment."))
         return redirect(back)
 
     if not rows:
-        flash("Nothing missing \u2014 nothing to export.")
+        flash(tr("Nothing missing — nothing to export."))
         return redirect(back)
 
     scope = re.sub(r"[^A-Za-z0-9]+", "-", sections[0].title).strip("-").lower() if section_key else "all"
@@ -1852,7 +1902,7 @@ def mediux_check():
     if request.method == "POST":
         uploads = [f for f in request.files.getlist("yml_file") if f and f.filename]
         if not uploads:
-            flash("No files selected.")
+            flash(tr("No files selected."))
             return redirect(url_for("mediux_check"))
 
         started = time.time()
@@ -1865,7 +1915,7 @@ def mediux_check():
             try:
                 yml_text = upload.read().decode("utf-8", errors="replace")
             except Exception as e:
-                flash(f"Could not read \"{upload.filename}\": {e}")
+                flash(tr("Could not read \"%(name)s\": %(error)s", name=upload.filename, error=e))
                 continue
             names = extract_mediux_tvdb_ids(yml_text)
             data, error, warnings = parse_mediux_yaml(yml_text)
@@ -2028,7 +2078,7 @@ def list_items(section_key):
         None,
     )
     if not section:
-        flash("Library not found.")
+        flash(tr("Library not found."))
         return redirect(url_for("libraries"))
 
     # full list of items, in the chosen sort order — the item page's
@@ -2037,7 +2087,7 @@ def list_items(section_key):
     try:
         all_items_full = sort_items(list(section.all()), sort)
     except requests.exceptions.RequestException:
-        flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
+        flash(tr("Plex took too long to respond (busy server or large library). Try again in a moment."))
         return redirect(url_for("libraries"))
 
     # give everything a global index
@@ -2139,7 +2189,7 @@ def list_items(section_key):
         per_page=per_page,
         per_page_options=PER_PAGE_OPTIONS,
         sort=sort,
-        sort_options=SORT_OPTIONS,
+        sort_options={k: tr(v) for k, v in SORT_OPTIONS.items()},
         alphabet=ALPHABET,
         letter=letter,
         search_query=search_query,
@@ -2149,7 +2199,7 @@ def list_items(section_key):
         available_missing_types=available_missing_types,
         last_check_ts=_ASSET_CACHE["computed_at"] if checked else None,
         last_check_display=(
-            datetime.datetime.fromtimestamp(_ASSET_CACHE["computed_at"]).strftime("%d/%m/%Y at %H:%M")
+            datetime.datetime.fromtimestamp(_ASSET_CACHE["computed_at"]).strftime(tr("%d/%m/%Y at %H:%M"))
             if checked else None
         ),
     ))
@@ -2166,7 +2216,7 @@ def refresh_assets(section_key):
         return redirect(url_for("connect"))
 
     refresh_asset_check(plex, section_key)
-    flash("Posters/backgrounds check completed.")
+    flash(tr("Posters/backgrounds check completed."))
 
     # bounce back to wherever the person was (list or item page), keeping
     # whatever letter/search/page/missing_type state was already in the URL
@@ -2376,14 +2426,14 @@ def evaluate_art(key, folder, found, candidates, plex_ts):
     return state, shown
 
 
-def applied_tip(label, state, shown):
+def applied_tip(state, shown):
     if state == "both" and shown:
-        return f"{label}: this exact file is in Plex and is the image Plex shows"
+        return tr("Poster: this exact file is in Plex and is the image Plex shows")
     if state == "both":
-        return f"{label}: this file was sent to Plex (Kometa applied it); Plex now shows a later image, for example with overlays"
+        return tr("Poster: this file was sent to Plex (Kometa applied it); Plex now shows a later image, for example with overlays")
     if state == "assets":
-        return f"{label}: in the assets folder, not sent to Plex yet (Kometa has not run since)"
-    return f"{label}: in the assets folder (Plex gave nothing to compare it with)"
+        return tr("Poster: in the assets folder, not sent to Plex yet (Kometa has not run since)")
+    return tr("Poster: in the assets folder (Plex gave nothing to compare it with)")
 
 
 def annotate_poster_source(items):
@@ -2401,13 +2451,13 @@ def annotate_poster_source(items):
             continue
         if not has:
             item.poster_src = "plex"
-            item.poster_src_tip = "Poster: only on Plex, nothing in the assets folder yet"
+            item.poster_src_tip = tr("Poster: only on Plex, nothing in the assets folder yet")
             continue
         folder = _asset_folder_for(item, asset_root)
         found = newest_asset_file(folder, lambda n: n.startswith("poster")) if folder else None
         if not found:
             item.poster_src = "assets"
-            item.poster_src_tip = "Poster: in the assets folder"
+            item.poster_src_tip = tr("Poster: in the assets folder")
             continue
         entry = applied.get(_art_key(asset_root, folder, "poster")) or {}
         ts = plex_art_timestamp(getattr(item, "thumb", None))
@@ -2416,10 +2466,10 @@ def annotate_poster_source(items):
         # again as soon as Plex changed anything on the item (Kometa may have run)
         if same_file and (entry.get("state") == "both" or (entry.get("state") == "assets" and entry.get("plex_ts") == ts)):
             item.poster_src = entry["state"]
-            item.poster_src_tip = applied_tip("Poster", entry["state"], bool(entry.get("shown")))
+            item.poster_src_tip = applied_tip(entry["state"], bool(entry.get("shown")))
         else:
             item.poster_src = "checking"
-            item.poster_src_tip = "Poster: checking against Plex…"
+            item.poster_src_tip = tr("Poster: checking against Plex…")
 
 
 def build_art_panel(item, source, art_type, season, episode, candidates):
@@ -2481,7 +2531,7 @@ def art_status():
     folder = _asset_folder_for(item, asset_root)
     found = newest_asset_file(folder, lambda n: n.startswith("poster")) if folder else None
     if not found:
-        return jsonify({"state": "plex", "tip": "Poster: only on Plex, nothing in the assets folder yet"})
+        return jsonify({"state": "plex", "tip": tr("Poster: only on Plex, nothing in the assets folder yet")})
     try:
         candidates = plex_art_candidates(item, "poster")
     except Exception:
@@ -2491,8 +2541,8 @@ def art_status():
         plex_art_timestamp(getattr(item, "thumb", None)),
     )
     if state == "unknown":
-        return jsonify({"state": "assets", "tip": applied_tip("Poster", "unknown", False)})
-    return jsonify({"state": state, "tip": applied_tip("Poster", state, shown)})
+        return jsonify({"state": "assets", "tip": applied_tip("unknown", False)})
+    return jsonify({"state": state, "tip": applied_tip(state, shown)})
 
 
 @app.route("/asset_img")
@@ -2573,7 +2623,7 @@ def browse(section_key):
         (s for s in plex.library.sections() if str(s.key) == section_key), None
     )
     if not section:
-        flash("Library not found.")
+        flash(tr("Library not found."))
         return redirect(url_for("libraries"))
     missing_type = request.args.get("missing_type", "")
     if missing_type not in filter_types_for(section.type):
@@ -2596,18 +2646,18 @@ def browse(section_key):
                     section, missing_type=missing_type, sort=get_sort_pref(), force=True
                 )
         except requests.exceptions.RequestException:
-            flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
+            flash(tr("Plex took too long to respond (busy server or large library). Try again in a moment."))
             return redirect(url_for("libraries"))
         if missing_keys is None:
-            flash("Run a check first before using this filter.")
+            flash(tr("Run a check first before using this filter."))
             return redirect(url_for("list_items", section_key=section.key))
         pages = len(missing_keys)
         if not pages:
             label = MISSING_TYPES[filter_base(missing_type)]["label"]
             if missing_type.startswith(HAS_PREFIX):
-                flash(f"No item with {label} \u2014 filter removed.")
+                flash(tr("No item with %(label)s — filter removed.", label=tr(label)))
             else:
-                flash(f"No {label} missing \u2014 filter removed.")
+                flash(tr("No %(label)s missing — filter removed.", label=tr(label)))
             return redirect(url_for("list_items", section_key=section.key))
         item_page = int(request.args.get("page", 1))
         item_letter = request.args.get("letter", "All")
@@ -2626,7 +2676,7 @@ def browse(section_key):
         try:
             items = sort_items(list(section.all()), get_sort_pref())
         except requests.exceptions.RequestException:
-            flash("Plex took too long to respond (busy server or large library). Try again in a moment.")
+            flash(tr("Plex took too long to respond (busy server or large library). Try again in a moment."))
             return redirect(url_for("libraries"))
         pages = len(items)
         item_page = int(request.args.get("page", 1))
@@ -2873,7 +2923,7 @@ def download():
     after_asset_write(item, base_dir)
     journal_log(item, ctx, base_dir, filename, "plex", img_key, replaced)
 
-    flash(f"Saved to {os.path.join(base_dir, filename)}")
+    flash(tr("Saved to %(path)s", path=os.path.join(base_dir, filename)))
     return redirect(
         url_for(
             "browse",
@@ -2898,7 +2948,7 @@ def upload_url():
     image_url = request.form.get("image_url", "").strip()
 
     if not image_url:
-        flash("No URL provided.")
+        flash(tr("No URL provided."))
         return redirect(
             url_for(
                 "browse",
@@ -2932,9 +2982,9 @@ def upload_url():
             f.write(resp.content)
         after_asset_write(item, base_dir)
         journal_log(item, ctx, base_dir, filename, "url", image_url, replaced)
-        flash(f"Saved to {os.path.join(base_dir, filename)}")
+        flash(tr("Saved to %(path)s", path=os.path.join(base_dir, filename)))
     except Exception as e:
-        flash(f"Download from URL failed: {e}")
+        flash(tr("Download from URL failed: %(error)s", error=e))
 
     return redirect(
         url_for(
@@ -2960,7 +3010,7 @@ def upload_file():
     uploaded = request.files.get("image_file")
 
     if not uploaded or uploaded.filename == "":
-        flash("No files selected.")
+        flash(tr("No files selected."))
         return redirect(
             url_for(
                 "browse",
@@ -2991,7 +3041,7 @@ def upload_file():
 
     after_asset_write(item, base_dir)
     journal_log(item, ctx, base_dir, filename, "upload", None, replaced)
-    flash(f"Saved to {os.path.join(base_dir, filename)}")
+    flash(tr("Saved to %(path)s", path=os.path.join(base_dir, filename)))
 
     return redirect(
         url_for(
@@ -3038,7 +3088,8 @@ def activity():
         ctx.update(
             entries=[journal_view(r) for r in rows], total=total, page=page,
             pages=max(1, math.ceil(total / per_page)), section=section, art=art, q=query,
-            libraries_seen=libraries_seen, db_ok=db_ok, art_filters=_ART_FILTERS,
+            libraries_seen=libraries_seen, db_ok=db_ok,
+            art_filters=[(a, tr(ART_LABELS[a])) for a in _ART_FILTERS],
         )
     return render_template("activity.html", **ctx)
 
@@ -3087,7 +3138,7 @@ def activity_redownload(entry_id):
     except Exception as e:
         _db_warn(e)
     if not entry or not entry.get("source"):
-        flash("This image has no source to download again (it was uploaded from a file).")
+        flash(tr("This image has no source to download again (it was uploaded from a file)."))
         return redirect(target)
     try:
         item = plex.fetchItem(entry["rating_key"])
@@ -3105,7 +3156,7 @@ def activity_redownload(entry_id):
         resp = requests.get(img_url, timeout=30)
         resp.raise_for_status()
         if not resp.headers.get("Content-Type", "").startswith("image/"):
-            raise ValueError("the source did not return an image")
+            raise ValueError(tr("the source did not return an image"))
         path = os.path.join(base_dir, filename)
         replaced = os.path.exists(path)
         with open(path, "wb") as f:
@@ -3120,9 +3171,9 @@ def activity_redownload(entry_id):
             },
             base_dir, filename, "redo", source, replaced,
         )
-        flash(f"Saved to {path}")
+        flash(tr("Saved to %(path)s", path=path))
     except Exception as e:
-        flash(f"Download again failed: {e}")
+        flash(tr("Download again failed: %(error)s", error=e))
     return redirect(target)
 
 

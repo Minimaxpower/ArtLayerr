@@ -14,18 +14,18 @@
     <span class="chip-cell st-{{ state }} {{ {'ok': 'bg-success text-white', 'part': 'bg-info text-dark', 'no': 'bg-secondary text-white', 'unk': 'bg-light text-dark'}[state] }}" title="{{ tip }}"><span class="cue-ic" aria-hidden="true">{{ {'ok': '✓', 'part': '◐', 'no': '✕', 'unk': '?'}[state] }}</span>{{ label }}</span>
   {% endmacro %}
   {% macro flag(label, value, name) %}
-    {{ cell(label, 'unk' if value is none else ('ok' if value else 'no'), name ~ (': not checked yet' if value is none else (': present' if value else ': missing'))) }}
+    {{ cell(label, 'unk' if value is none else ('ok' if value else 'no'), (_('%(name)s: not checked yet', name=name) if value is none else (_('%(name)s: present', name=name) if value else _('%(name)s: missing', name=name)))) }}
   {% endmacro %}
 
   {# ——— Where the poster lives: on Plex only, in /assets (not applied yet), or both ——— #}
   {% macro src_badge(state, tip, rk=none) %}
     {% set cls = {'plex': 'bg-secondary text-white st-no', 'assets': 'bg-warning text-dark st-part', 'both': 'bg-success text-white st-ok', 'checking': 'bg-secondary bg-opacity-50 text-white'}[state] %}
-    <span class="badge rounded-pill flex-shrink-0 src-badge {{ cls }}" style="font-size: .62rem;" title="{{ tip }}"{% if rk %} data-rk="{{ rk }}"{% endif %}><span class="cue-ic" aria-hidden="true">{{ {'plex': '–', 'assets': '◐', 'both': '✓', 'checking': ''}[state] }}</span>{{ {'plex': 'Plex', 'assets': 'Assets', 'both': 'Both', 'checking': '…'}[state] }}</span>
+    <span class="badge rounded-pill flex-shrink-0 src-badge {{ cls }}" style="font-size: .62rem;" title="{{ tip }}"{% if rk %} data-rk="{{ rk }}"{% endif %}><span class="cue-ic" aria-hidden="true">{{ {'plex': '–', 'assets': '◐', 'both': '✓', 'checking': ''}[state] }}</span>{{ {'plex': 'Plex', 'assets': _('Assets'), 'both': _('Both'), 'checking': '…'}[state] }}</span>
   {% endmacro %}
 
   {# ——— Reusable pagination (compact at the top, full at the bottom) ——— #}
-  {% macro pager(window=7, small=false, prev_label='Previous', next_label='Next') %}
-    <nav aria-label="Page navigation"{% if small %} class="ms-auto"{% endif %}>
+  {% macro pager(window=7, small=false, prev_label=none, next_label=none) %}
+    <nav aria-label="{{ _("Page navigation") }}"{% if small %} class="ms-auto"{% endif %}>
       <ul class="pagination flex-wrap{% if small %} pagination-sm mb-0{% endif %}">
         <li class="page-item{% if page <= 1 %} disabled{% endif %}">
           <a class="page-link"
@@ -35,7 +35,7 @@
                               letter=letter,
                               q=search_query if search_query else none,
                               missing_type=missing_type if missing_type else none) }}">
-            {{ prev_label }}
+            {{ prev_label or _('Previous') }}
           </a>
         </li>
 
@@ -65,21 +65,21 @@
                               letter=letter,
                               q=search_query if search_query else none,
                               missing_type=missing_type if missing_type else none) }}">
-            {{ next_label }}
+            {{ next_label or _('Next') }}
           </a>
         </li>
       </ul>
     </nav>
   {% endmacro %}
 
-  <h2>{{ section.title }} – Pick an Item</h2>
+  <h2>{{ _("%(title)s – Pick an Item", title=section.title) }}</h2>
 
   <div class="row g-3 mb-3">
     <div class="col-md-6">
       <form method="get" class="d-flex gap-2">
         <input type="hidden" name="missing_type" value="{{ missing_type }}">
-        <input type="text" name="q" class="form-control" placeholder="Search for a title…" value="{{ search_query }}">
-        <button type="submit" class="btn btn-secondary text-nowrap">Search</button>
+        <input type="text" name="q" class="form-control" placeholder="{{ _("Search for a title…") }}" value="{{ search_query }}">
+        <button type="submit" class="btn btn-secondary text-nowrap">{{ _("Search") }}</button>
         {% if search_query %}
           <a href="{{ url_for('list_items', section_key=section.key, missing_type=missing_type if missing_type else none) }}" class="btn btn-outline-secondary text-nowrap">✕</a>
         {% endif %}
@@ -87,33 +87,33 @@
     </div>
     <div class="col-md-6 text-md-end">
       {% if last_check_display %}
-        <span class="small text-muted me-2">Last checked: <time class="local-time" data-ts="{{ last_check_ts }}">{{ last_check_display }}</time></span>
+        <span class="small text-muted me-2">{{ _("Last checked:") }} <time class="local-time" data-ts="{{ last_check_ts }}">{{ last_check_display }}</time></span>
       {% endif %}
       {% if checked %}
         <div class="btn-group btn-group-sm">
-          <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export what is missing in this library">⬇ Export</button>
+          <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{ _("Export what is missing in this library") }}">{{ _("⬇ Export") }}</button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><h6 class="dropdown-header">{% if export_type %}Missing {{ {'poster': 'posters', 'background': 'backgrounds', 'logo': 'logos', 'square': 'square', 'season': 'seasons', 'episode': 'episodes'}[export_type] }}{% else %}Everything missing{% endif %}, whole library</h6></li>
-            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=export_type if export_type else none, format='csv') }}">CSV (spreadsheet)</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=export_type if export_type else none, format='txt') }}">Text list</a></li>
+            <li><h6 class="dropdown-header">{% if export_type %}{{ {'poster': _('Missing posters, whole library'), 'background': _('Missing backgrounds, whole library'), 'logo': _('Missing logos, whole library'), 'square': _('Missing square, whole library'), 'season': _('Missing seasons, whole library'), 'episode': _('Missing episodes, whole library')}[export_type] }}{% else %}{{ _('Everything missing, whole library') }}{% endif %}</h6></li>
+            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=export_type if export_type else none, format='csv') }}">{{ _("CSV (spreadsheet)") }}</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('export_missing', section_key=section.key, missing_type=export_type if export_type else none, format='txt') }}">{{ _("Text list") }}</a></li>
           </ul>
         </div>
       {% endif %}
       <a href="{{ url_for('refresh_assets', section_key=section.key, page=page, letter=letter, q=search_query if search_query else none, missing_type=missing_type if missing_type else none) }}"
          class="btn btn-sm btn-outline-secondary">
-        🔄 Update
+        {{ _("🔄 Update") }}
       </a>
     </div>
   </div>
 
-  {% set labels = {'poster': 'Posters', 'background': 'Backgrounds', 'logo': 'Logos', 'square': 'Square', 'season': 'Seasons', 'episode': 'Episodes'} %}
+  {% set labels = {'poster': _('Posters'), 'background': _('Backgrounds'), 'logo': _('Logos'), 'square': _('Square'), 'season': _('Seasons'), 'episode': _('Episodes')} %}
   <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
     {% if checked %}
-      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em; min-width: 3.4rem;">Missing</span>
+      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em; min-width: 3.4rem;">{{ _("Missing") }}</span>
       {% for t in available_missing_types %}
         {% if missing_type == t %}
           <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, q=search_query if search_query else none) }}"
-             class="btn btn-sm btn-warning rounded-pill px-3" title="Clear filter">
+             class="btn btn-sm btn-warning rounded-pill px-3" title="{{ _("Clear filter") }}">
             {{ labels[t] }} <span class="opacity-75 ms-1">{{ missing_counts[t] }}</span> <span class="ms-1">✕</span>
           </a>
         {% else %}
@@ -130,36 +130,36 @@
       {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
       {% if letter != 'All' %}<input type="hidden" name="letter" value="{{ letter }}">{% endif %}
       {% if missing_type %}<input type="hidden" name="missing_type" value="{{ missing_type }}">{% endif %}
-      <span class="small text-muted text-uppercase" style="letter-spacing: .05em;">Sort</span>
-      <select name="sort" class="form-select form-select-sm w-auto" aria-label="Sort order" onchange="this.form.submit()">
+      <span class="small text-muted text-uppercase" style="letter-spacing: .05em;">{{ _("Sort") }}</span>
+      <select name="sort" class="form-select form-select-sm w-auto" aria-label="{{ _("Sort order") }}" onchange="this.form.submit()">
         {% for key, label in sort_options.items() %}
           <option value="{{ key }}"{% if key == sort %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <select name="per_page" class="form-select form-select-sm w-auto" aria-label="Items per page" onchange="this.form.submit()">
+      <select name="per_page" class="form-select form-select-sm w-auto" aria-label="{{ _("Items per page") }}" onchange="this.form.submit()">
         {% for n in per_page_options %}
-          <option value="{{ n }}"{% if n == per_page %} selected{% endif %}>{{ n }} per page</option>
+          <option value="{{ n }}"{% if n == per_page %} selected{% endif %}>{{ _("%(n)s per page", n=n) }}</option>
         {% endfor %}
       </select>
-      <noscript><button type="submit" class="btn btn-sm btn-secondary">Apply</button></noscript>
+      <noscript><button type="submit" class="btn btn-sm btn-secondary">{{ _("Apply") }}</button></noscript>
     </form>
   </div>
 
   {# the inverse filter: only the items that already have the image. For seasons / episodes it means at least one #}
   {% if checked %}
-    {% set has_tips = {'season': 'Shows with at least one season poster', 'episode': 'Shows with at least one episode image'} %}
+    {% set has_tips = {'season': _('Shows with at least one season poster'), 'episode': _('Shows with at least one episode image')} %}
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em; min-width: 3.4rem;" title="Only the items that already have the image">Has</span>
+      <span class="small text-muted text-uppercase me-1" style="letter-spacing: .05em; min-width: 3.4rem;" title="{{ _("Only the items that already have the image") }}">{{ _("Has") }}</span>
       {% for t in available_missing_types %}
         {% set ht = 'has_' ~ t %}
         {% if missing_type == ht %}
           <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, q=search_query if search_query else none) }}"
-             class="btn btn-sm btn-success rounded-pill px-3" title="Clear filter">
+             class="btn btn-sm btn-success rounded-pill px-3" title="{{ _("Clear filter") }}">
             {{ labels[t] }} <span class="opacity-75 ms-1">{{ has_counts[t] }}</span> <span class="ms-1">✕</span>
           </a>
         {% else %}
           <a href="{{ url_for('list_items', section_key=section.key, page=1, letter=letter, missing_type=ht, q=search_query if search_query else none) }}"
-             class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="{{ has_tips.get(t, 'Only the items that have this image') }}">
+             class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="{{ has_tips.get(t, _('Only the items that have this image')) }}">
             {{ labels[t] }} <span class="opacity-50 ms-1">{{ has_counts[t] }}</span>
           </a>
         {% endif %}
@@ -169,19 +169,19 @@
 
   {% if art_pending %}
     <div class="alert alert-secondary">
-      Logos / square are switched on, but they have not been scanned yet — click “Update” to see them.
+      {{ _("Logos / square are switched on, but they have not been scanned yet — click “Update” to see them.") }}
     </div>
   {% endif %}
 
   {% if not checked %}
     <div class="alert alert-secondary">
-      No verification has been done yet — the posters/backgrounds below are marked with a “?” until you click “Update” for the first time.
+      {{ _("No verification has been done yet — the posters/backgrounds below are marked with a “?” until you click “Update” for the first time.") }}
     </div>
   {% endif %}
 
   {% if checked %}
     <div class="small text-muted mb-3">
-      Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>Both</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked.
+      {{ _("Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>Both</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked.")|safe }}
     </div>
   {% endif %}
 
@@ -193,7 +193,7 @@
   {% endif %}
 
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <div class="btn-group" role="group" aria-label="Alphabet filter">
+    <div class="btn-group" role="group" aria-label="{{ _("Alphabet filter") }}">
       {% for loop_letter in ['All'] + alphabet %}
         {% set idx = loop.index0 %}
         <a href="{{ url_for('list_items',
@@ -202,7 +202,7 @@
                              letter=loop_letter,
                              missing_type=missing_type if missing_type else none) }}"
            class="btn btn-sm btn-outline-secondary{% if idx == current_index %} active{% endif %}">
-          {{ loop_letter }}
+          {{ _('All') if loop_letter == 'All' else loop_letter }}
         </a>
       {% endfor %}
     </div>
@@ -222,36 +222,36 @@
           <div class="card poster-card h-100 position-relative">
             <div class="position-absolute d-flex flex-column align-items-end gap-1" style="z-index: 2; top: 8px; right: 8px; max-width: 92%;">
               <div class="chip-group">
-                {{ flag('P', item.has_poster, 'Poster') }}
-                {{ flag('B', item.has_background, 'Background') }}
-                {% if show_logo %}{{ flag('L', item.has_logo, 'Logo') }}{% endif %}
-                {% if show_square %}{{ flag('Q', item.has_square, 'Square') }}{% endif %}
+                {{ flag('P', item.has_poster, _('Poster')) }}
+                {{ flag('B', item.has_background, _('Background')) }}
+                {% if show_logo %}{{ flag('L', item.has_logo, _('Logo')) }}{% endif %}
+                {% if show_square %}{{ flag('Q', item.has_square, _('Square')) }}{% endif %}
               </div>
               {% if section.type == 'show' %}
                 {% set s_total = item.childCount or 0 %}
                 {% set e_total = item.leafCount or 0 %}
                 {% if item.custom_seasons is none %}
-                  {% set s_label, s_state, s_tip = 'S', 'unk', 'Seasons: not checked yet' %}
+                  {% set s_label, s_state, s_tip = 'S', 'unk', _('Seasons: not checked yet') %}
                 {% else %}
                   {% set s_done = item.custom_seasons|length %}
                   {% if s_done == 0 %}
-                    {% set s_label, s_state, s_tip = 'S', 'no', 'Seasons: none' ~ (' (of ' ~ s_total ~ ')' if s_total else '') %}
+                    {% set s_label, s_state, s_tip = 'S', 'no', (_('Seasons: none (of %(total)s)', total=s_total) if s_total else _('Seasons: none')) %}
                   {% elif item.seasons_complete or not s_total %}
-                    {% set s_label, s_state, s_tip = 'S' ~ s_done, ('ok' if item.seasons_complete else 'part'), 'Seasons: ' ~ s_done ~ (' of ' ~ s_total if s_total else '') %}
+                    {% set s_label, s_state, s_tip = 'S' ~ s_done, ('ok' if item.seasons_complete else 'part'), (_('Seasons: %(done)s of %(total)s', done=s_done, total=s_total) if s_total else _('Seasons: %(done)s', done=s_done)) %}
                   {% else %}
-                    {% set s_label, s_state, s_tip = 'S ' ~ s_done ~ '/' ~ s_total, 'part', 'Seasons: ' ~ s_done ~ ' of ' ~ s_total %}
+                    {% set s_label, s_state, s_tip = 'S ' ~ s_done ~ '/' ~ s_total, 'part', _('Seasons: %(done)s of %(total)s', done=s_done, total=s_total) %}
                   {% endif %}
                 {% endif %}
                 {% if item.custom_episode_count is none %}
-                  {% set e_label, e_state, e_tip = 'E', 'unk', 'Episodes: not checked yet' %}
+                  {% set e_label, e_state, e_tip = 'E', 'unk', _('Episodes: not checked yet') %}
                 {% else %}
                   {% set e_done = item.custom_episode_count %}
                   {% if e_done == 0 %}
-                    {% set e_label, e_state, e_tip = 'E', 'no', 'Episodes: none' ~ (' (of ' ~ e_total ~ ')' if e_total else '') %}
+                    {% set e_label, e_state, e_tip = 'E', 'no', (_('Episodes: none (of %(total)s)', total=e_total) if e_total else _('Episodes: none')) %}
                   {% elif item.episodes_complete or not e_total %}
-                    {% set e_label, e_state, e_tip = 'E' ~ e_done, ('ok' if item.episodes_complete else 'part'), 'Episodes: ' ~ e_done ~ (' of ' ~ e_total if e_total else '') %}
+                    {% set e_label, e_state, e_tip = 'E' ~ e_done, ('ok' if item.episodes_complete else 'part'), (_('Episodes: %(done)s of %(total)s', done=e_done, total=e_total) if e_total else _('Episodes: %(done)s', done=e_done)) %}
                   {% else %}
-                    {% set e_label, e_state, e_tip = 'E ' ~ e_done ~ '/' ~ e_total, 'part', 'Episodes: ' ~ e_done ~ ' of ' ~ e_total %}
+                    {% set e_label, e_state, e_tip = 'E ' ~ e_done ~ '/' ~ e_total, 'part', _('Episodes: %(done)s of %(total)s', done=e_done, total=e_total) %}
                   {% endif %}
                 {% endif %}
                 <div class="chip-group">
@@ -267,7 +267,7 @@
             {% else %}
               <div class="d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-muted small"
                    style="aspect-ratio: 2 / 3;">
-                No image
+                {{ _("No image") }}
               </div>
             {% endif %}
             <div class="poster-overlay d-flex align-items-center gap-1">
@@ -290,7 +290,8 @@
       if (!badges.length) return;
       var CLS = {plex: 'bg-secondary text-white st-no', assets: 'bg-warning text-dark st-part', both: 'bg-success text-white st-ok'};
       var ICON = {plex: '–', assets: '◐', both: '✓'};
-      var TXT = {plex: 'Plex', assets: 'Assets', both: 'Both'};
+      var TXT = {{ {'plex': 'Plex', 'assets': _('Assets'), 'both': _('Both')}|tojson }};
+      var ERR = {{ _('Could not check this poster')|tojson }};
       var url = "{{ url_for('art_status') }}";
       var i = 0, running = 0, MAX = 3;
       function paint(el, r) {
@@ -306,9 +307,9 @@
             fetch(url + '?rk=' + encodeURIComponent(el.getAttribute('data-rk')), {credentials: 'same-origin'})
               .then(function (r) { return r.ok ? r.json() : null; })
               .then(function (r) {
-                if (r && CLS[r.state]) paint(el, r); else el.title = 'Could not check this poster';
+                if (r && CLS[r.state]) paint(el, r); else el.title = ERR;
               })
-              .catch(function () { el.title = 'Could not check this poster'; })
+              .catch(function () { el.title = ERR; })
               .then(function () { running--; next(); });
           })(badges[i++]);
         }

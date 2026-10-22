@@ -7,33 +7,33 @@
   .lib-title { min-width: 0; overflow-wrap: anywhere; }
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0">Dashboard</h2>
+  <h2 class="mb-0">{{ _("Dashboard") }}</h2>
   <div class="d-flex align-items-center gap-3">
     {% if computed_at_display %}
-      <span class="small text-muted">Last checked: <time class="local-time" data-ts="{{ computed_at }}">{{ computed_at_display }}</time>{% if auto_refresh_hours %} · auto-update every {{ auto_refresh_hours }} h{% endif %}</span>
+      <span class="small text-muted">{{ _("Last checked:") }} <time class="local-time" data-ts="{{ computed_at }}">{{ computed_at_display }}</time>{% if auto_refresh_hours %} · {{ _("auto-update every %(hours)s h", hours=auto_refresh_hours) }}{% endif %}</span>
     {% endif %}
     {% if computed_at %}
       <div class="btn-group btn-group-sm">
-        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export everything that is missing, all libraries (ignored ones excluded)">⬇ Export</button>
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{ _("Export everything that is missing, all libraries (ignored ones excluded)") }}">{{ _("⬇ Export") }}</button>
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><h6 class="dropdown-header">Everything missing, all libraries</h6></li>
-          <li><a class="dropdown-item" href="{{ url_for('export_missing', format='csv') }}">CSV (spreadsheet)</a></li>
-          <li><a class="dropdown-item" href="{{ url_for('export_missing', format='txt') }}">Text list</a></li>
+          <li><h6 class="dropdown-header">{{ _("Everything missing, all libraries") }}</h6></li>
+          <li><a class="dropdown-item" href="{{ url_for('export_missing', format='csv') }}">{{ _("CSV (spreadsheet)") }}</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('export_missing', format='txt') }}">{{ _("Text list") }}</a></li>
         </ul>
       </div>
     {% endif %}
-    <a href="{{ url_for('libraries', refresh=1) }}" class="btn btn-sm btn-outline-primary">🔄 Update</a>
+    <a href="{{ url_for('libraries', refresh=1) }}" class="btn btn-sm btn-outline-primary">{{ _("🔄 Update") }}</a>
   </div>
 </div>
 
 {% if not computed_at %}
   <div class="alert alert-secondary">
-    The first calculation is in progress as you view this page—it may take a moment, depending on the size of your libraries.
+    {{ _("The first calculation is in progress as you view this page—it may take a moment, depending on the size of your libraries.") }}
   </div>
 {% endif %}
 {% if art_pending %}
   <div class="alert alert-secondary">
-    Logos / square are switched on, but they have not been counted yet — click “Update”.
+    {{ _("Logos / square are switched on, but they have not been counted yet — click “Update”.") }}
   </div>
 {% endif %}
 
@@ -63,26 +63,26 @@
   {% set show_q = show_square and art_scanned %}
   {# two columns. Movies: posters, backgrounds | logos, square art.
      Shows: posters, backgrounds, logos | square art, seasons, episodes #}
-  {% set left = [('Posters', lib.poster_done, lib.total, 'poster'), ('Backgrounds', lib.bg_done, lib.total, 'background')] %}
+  {% set left = [(_('Posters'), lib.poster_done, lib.total, 'poster'), (_('Backgrounds'), lib.bg_done, lib.total, 'background')] %}
   {% set right = [] %}
   {% if lib.type == 'show' %}
-    {% if show_l %}{% set left = left + [('Logos', lib.logo_done or 0, lib.total, 'logo')] %}{% endif %}
-    {% if show_q %}{% set right = right + [('Square', lib.square_done or 0, lib.total, 'square')] %}{% endif %}
-    {% set right = right + [('Seasons', lib.season_done, lib.season_total, 'season'), ('Episodes', lib.episode_done, lib.episode_total, 'episode')] %}
+    {% if show_l %}{% set left = left + [(_('Logos'), lib.logo_done or 0, lib.total, 'logo')] %}{% endif %}
+    {% if show_q %}{% set right = right + [(_('Square'), lib.square_done or 0, lib.total, 'square')] %}{% endif %}
+    {% set right = right + [(_('Seasons'), lib.season_done, lib.season_total, 'season'), (_('Episodes'), lib.episode_done, lib.episode_total, 'episode')] %}
   {% else %}
-    {% if show_l %}{% set right = right + [('Logos', lib.logo_done or 0, lib.total, 'logo')] %}{% endif %}
-    {% if show_q %}{% set right = right + [('Square', lib.square_done or 0, lib.total, 'square')] %}{% endif %}
+    {% if show_l %}{% set right = right + [(_('Logos'), lib.logo_done or 0, lib.total, 'logo')] %}{% endif %}
+    {% if show_q %}{% set right = right + [(_('Square'), lib.square_done or 0, lib.total, 'square')] %}{% endif %}
   {% endif %}
   <div class="card p-3 library-card position-relative mb-3{% if ignored %} lib-ignored{% endif %}">
     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
       <a href="{{ url_for('list_items', section_key=lib.key) }}" class="stretched-link text-decoration-none text-body lib-body lib-title"><strong>{{ lib.title }}</strong></a>
       <div class="d-flex align-items-center gap-2 position-relative flex-shrink-0" style="z-index: 2;">
-        <span class="badge bg-secondary text-uppercase">{{ lib.type }}</span>
+        <span class="badge bg-secondary text-uppercase">{{ _('movie') if lib.type == 'movie' else _('show') }}</span>
         <form method="post" action="{{ url_for('toggle_ignore_library', section_key=lib.key) }}" class="m-0">
           <button type="submit" data-state="{{ 'ignored' if ignored else 'included' }}"
                   class="btn btn-sm py-0 px-1 d-inline-flex align-items-center {{ 'btn-warning' if ignored else 'btn-outline-secondary' }}"
-                  title="{% if ignored %}Ignored in the totals — click to count it again{% else %}Counted in the totals — click to ignore it{% endif %}"
-                  aria-label="{% if ignored %}Ignored in the totals, click to count it again{% else %}Counted in the totals, click to ignore it{% endif %}">
+                  title="{% if ignored %}{{ _("Ignored in the totals — click to count it again") }}{% else %}{{ _("Counted in the totals — click to ignore it") }}{% endif %}"
+                  aria-label="{% if ignored %}{{ _("Ignored in the totals, click to count it again") }}{% else %}{{ _("Counted in the totals, click to ignore it") }}{% endif %}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               {% if ignored %}
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
@@ -106,7 +106,7 @@
 {% macro ring(title, mtype, done, total) %}
   {% set pct = ((done / total * 100) | round(0) | int) if total else 0 %}
   <div class="col">
-    <a href="{{ url_for('missing_overview', missing_type=mtype) }}" class="card h-100 px-1 py-2 text-center text-decoration-none text-body library-card" title="{{ title }}: {{ done }} done, {{ total - done }} missing, {{ total }} total">
+    <a href="{{ url_for('missing_overview', missing_type=mtype) }}" class="card h-100 px-1 py-2 text-center text-decoration-none text-body library-card" title="{{ _("%(title)s: %(done)s done, %(missing)s missing, %(total)s total", title=title, done=done, missing=total - done, total=total) }}">
       <div class="text-uppercase text-muted mb-1" style="letter-spacing: .02em; font-size: .65rem; white-space: nowrap;">{{ ic(mtype) }}{{ title }}</div>
       <div class="stat-ring has-pat k-{{ mtype }} mx-auto" style="--pct: {{ pct }}; --ring-color: var(--c-{{ mtype }}); width: 72px; height: 72px;">
         <div class="stat-ring-inner" style="width: 54px; height: 54px;">
@@ -124,7 +124,7 @@
   </div>
 
   <div class="col-lg-3">
-    <h6 class="text-uppercase small text-muted mb-2 mt-1 d-lg-none" style="letter-spacing: .05em;">Movies (continued)</h6>
+    <h6 class="text-uppercase small text-muted mb-2 mt-1 d-lg-none" style="letter-spacing: .05em;">{{ _("Movies (continued)") }}</h6>
     {% for lib in movie_libs[movie_mid:] %}{{ lib_card(lib) }}{% endfor %}
   </div>
 
@@ -134,15 +134,15 @@
 
   <div class="col-lg-3">
     <div class="row row-cols-2 g-2">
-      {{ ring('Posters', 'poster', totals.poster_done, totals.poster_total) }}
-      {{ ring('Seasons', 'season', totals.season_done, totals.season_total) }}
-      {{ ring('Backgrounds', 'background', totals.bg_done, totals.bg_total) }}
-      {{ ring('Episodes', 'episode', totals.episode_done, totals.episode_total) }}
-      {% if show_logo and art_scanned %}{{ ring('Logos', 'logo', totals.logo_done, totals.logo_total) }}{% endif %}
-      {% if show_square and art_scanned %}{{ ring('Square', 'square', totals.square_done, totals.square_total) }}{% endif %}
+      {{ ring(_('Posters'), 'poster', totals.poster_done, totals.poster_total) }}
+      {{ ring(_('Seasons'), 'season', totals.season_done, totals.season_total) }}
+      {{ ring(_('Backgrounds'), 'background', totals.bg_done, totals.bg_total) }}
+      {{ ring(_('Episodes'), 'episode', totals.episode_done, totals.episode_total) }}
+      {% if show_logo and art_scanned %}{{ ring(_('Logos'), 'logo', totals.logo_done, totals.logo_total) }}{% endif %}
+      {% if show_square and art_scanned %}{{ ring(_('Square'), 'square', totals.square_done, totals.square_total) }}{% endif %}
     </div>
     {% if ignored_count %}
-      <div class="small text-muted text-center mt-3">Totals leave out {{ ignored_count }} ignored {{ 'library' if ignored_count == 1 else 'libraries' }}.</div>
+      <div class="small text-muted text-center mt-3">{{ ngettext("Totals leave out %(n)s ignored library.", "Totals leave out %(n)s ignored libraries.", ignored_count) }}</div>
     {% endif %}
   </div>
 </div>

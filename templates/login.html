@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="mx-auto" style="max-width: 360px;">
-  <h2 class="mb-3">Sign in</h2>
+  <h2 class="mb-3">{{ _("Sign in") }}</h2>
   {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
   <form method="post">
     <input type="hidden" name="next" value="{{ next_url }}">
     <div class="mb-3">
-      <label class="form-label">Password</label>
+      <label class="form-label">{{ _("Password") }}</label>
       <input type="password" name="password" class="form-control" autocomplete="current-password" autofocus required>
     </div>
-    <button type="submit" class="btn btn-primary w-100">Sign in</button>
+    <button type="submit" class="btn btn-primary w-100">{{ _("Sign in") }}</button>
   </form>
 </div>
 {% endblock %}

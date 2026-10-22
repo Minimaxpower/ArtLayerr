@@ -1,0 +1,1291 @@
+# ArtLayerr: French translation (Français)
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Native-Name: Français\n"
+
+#: app.py:1360
+#, python-format
+msgid " (line %(line)s, column %(column)s)"
+msgstr " (ligne %(line)s, colonne %(column)s)"
+
+#: templates/item.html
+#, python-format
+msgid "%(custom_episode_count)s ep."
+msgstr "%(custom_episode_count)s ép."
+
+#: templates/mediux_check.html
+#, python-format
+msgid "%(library)s: %(n)s missing"
+msgid_plural "%(library)s: %(n)s missing"
+msgstr[0] "%(library)s : %(n)s manquant"
+msgstr[1] "%(library)s : %(n)s manquants"
+
+#: templates/missing_overview.html
+#, python-format
+msgid "%(missing)s missing out of %(of)s %(unit)s"
+msgid_plural "%(missing)s missing out of %(of)s %(unit)s"
+msgstr[0] "%(missing)s manquant sur %(of)s %(unit)s"
+msgstr[1] "%(missing)s manquants sur %(of)s %(unit)s"
+
+#: templates/mediux_check.html
+#, python-format
+msgid "%(n)s episode"
+msgid_plural "%(n)s episodes"
+msgstr[0] "%(n)s épisode"
+msgstr[1] "%(n)s épisodes"
+
+#: templates/activity.html
+#, python-format
+msgid "%(n)s image saved"
+msgid_plural "%(n)s images saved"
+msgstr[0] "%(n)s image enregistrée"
+msgstr[1] "%(n)s images enregistrées"
+
+#: templates/items.html
+#, python-format
+msgid "%(n)s per page"
+msgstr "%(n)s par page"
+
+#: templates/mediux_check.html
+#, python-format
+msgid "%(n)s season"
+msgid_plural "%(n)s seasons"
+msgstr[0] "%(n)s saison"
+msgstr[1] "%(n)s saisons"
+
+#: templates/mediux_check.html
+#, python-format
+msgid "%(n)s show"
+msgid_plural "%(n)s shows"
+msgstr[0] "%(n)s série"
+msgstr[1] "%(n)s séries"
+
+#: templates/mediux_check.html
+#, python-format
+msgid "%(n)s show analyzed (%(cache)s from cache) in %(secs)s s."
+msgid_plural "%(n)s shows analyzed (%(cache)s from cache) in %(secs)s s."
+msgstr[0] "%(n)s série analysée (%(cache)s depuis le cache) en %(secs)s s."
+msgstr[1] "%(n)s séries analysées (%(cache)s depuis le cache) en %(secs)s s."
+
+#: templates/items.html
+#, python-format
+msgid "%(name)s: missing"
+msgstr "%(name)s : manquant"
+
+#: templates/items.html
+#, python-format
+msgid "%(name)s: not checked yet"
+msgstr "%(name)s : pas encore vérifié"
+
+#: templates/items.html
+#, python-format
+msgid "%(name)s: present"
+msgstr "%(name)s : présent"
+
+#: templates/mediux_check.html
+#, python-format
+msgid "%(seasons)s and %(episodes)s declared do not exist in your library. This is what Kometa reports as \"not found\": it skips these entries and carries on. Either you are missing these files, or the numbering in the file doesn't match Plex's."
+msgstr "%(seasons)s et %(episodes)s déclarés n'existent pas dans votre bibliothèque. C'est ce que Kometa signale comme « not found » : il ignore ces entrées et continue. Soit ces fichiers vous manquent, soit la numérotation du fichier ne correspond pas à celle de Plex."
+
+#: templates/items.html
+#, python-format
+msgid "%(title)s – Pick an Item"
+msgstr "%(title)s – Choisir un élément"
+
+#: templates/libraries.html
+#, python-format
+msgid "%(title)s: %(done)s done, %(missing)s missing, %(total)s total"
+msgstr "%(title)s : %(done)s faits, %(missing)s manquants, %(total)s au total"
+
+#: app.py:1628 app.py:2202
+msgid "%d/%m/%Y at %H:%M"
+msgstr "%d/%m/%Y à %H:%M"
+
+#: templates/activity.html
+msgid "1 year"
+msgstr "1 an"
+
+#: templates/activity.html
+msgid "30 days"
+msgstr "30 jours"
+
+#: templates/activity.html
+msgid "90 days"
+msgstr "90 jours"
+
+#: templates/item.html
+msgid "? Background"
+msgstr "? Fond"
+
+#: templates/item.html
+msgid "? Ep."
+msgstr "? Ép."
+
+#: templates/item.html
+msgid "? Logo"
+msgstr "? Logo"
+
+#: templates/item.html
+msgid "? Poster"
+msgstr "? Affiche"
+
+#: templates/item.html
+msgid "? Seasons"
+msgstr "? Saisons"
+
+#: templates/item.html
+msgid "? Square"
+msgstr "? Carré"
+
+#: app.py:1555
+msgid "A Plex token is required for this URL."
+msgstr "Un jeton Plex est requis pour cette URL."
+
+#: templates/connect.html
+msgid "A token is already configured on the server. Leave this blank to use it (works for the configured URL only)."
+msgstr "Un jeton est déjà configuré sur le serveur. Laissez ce champ vide pour l'utiliser (uniquement pour l'URL configurée)."
+
+#: templates/activity.html templates/base.html
+msgid "Activity"
+msgstr "Activité"
+
+#: templates/item.html
+msgid "Add to compare"
+msgstr "Ajouter à la comparaison"
+
+#: templates/activity.html templates/items.html
+msgid "All"
+msgstr "Tous"
+
+#: templates/activity.html
+msgid "All images"
+msgstr "Toutes les images"
+
+#: templates/activity.html
+msgid "All libraries"
+msgstr "Toutes les bibliothèques"
+
+#: templates/mediux_check.html
+msgid "All your shows are already covered by these files."
+msgstr "Toutes vos séries sont déjà couvertes par ces fichiers."
+
+#: templates/mediux_check.html
+msgid "All your shows are already covered by this file."
+msgstr "Toutes vos séries sont déjà couvertes par ce fichier."
+
+#: templates/items.html
+msgid "Alphabet filter"
+msgstr "Filtre alphabétique"
+
+#: templates/mediux_check.html
+msgid "Analysis in progress: the app is reading the episodes of each show in the files from Plex; this may take up to one minute the first time. The other pages remain available during this time."
+msgstr "Analyse en cours : l'application lit sur Plex les épisodes de chaque série citée dans les fichiers ; cela peut prendre jusqu'à une minute la première fois. Les autres pages restent disponibles pendant ce temps."
+
+#: templates/mediux_check.html
+msgid "Analyzing…"
+msgstr "Analyse…"
+
+#: templates/base.html
+msgid "Appearance"
+msgstr "Apparence"
+
+#: templates/base.html templates/items.html
+msgid "Apply"
+msgstr "Appliquer"
+
+#: templates/item.html
+msgid "Art Type"
+msgstr "Type d'image"
+
+#: templates/base.html
+#, python-format
+msgid "ArtLayerr %(version)s is available. To update: docker compose pull && docker compose up -d"
+msgstr "ArtLayerr %(version)s est disponible. Pour mettre à jour : docker compose pull && docker compose up -d"
+
+#: templates/items.html
+msgid "Assets"
+msgstr "Assets"
+
+#: app.py:1024
+msgid "B"
+msgstr "o"
+
+#: templates/item.html templates/items.html app.py:1042
+msgid "Background"
+msgstr "Fond"
+
+#: templates/activity.html templates/items.html templates/libraries.html
+msgid "Backgrounds"
+msgstr "Fonds"
+
+#: templates/items.html
+msgid "Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>Both</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked."
+msgstr "Badge à côté de chaque titre : <strong>Plex</strong> = uniquement sur Plex, <strong>Assets</strong> = dans le dossier assets mais pas encore envoyé à Plex, <strong>Les deux</strong> = ce fichier exact a été envoyé à Plex (vérifié en comparant le fichier avec ce que Plex contient). Un « … » signifie que la carte est en cours de vérification."
+
+#: templates/connect.html
+msgid "Base Image Asset directory"
+msgstr "Dossier de base des images (assets)"
+
+#: templates/connect.html
+msgid "Base URL"
+msgstr "URL de base"
+
+#: templates/base.html
+msgid "Blue-yellow colorblind"
+msgstr "Daltonisme bleu-jaune"
+
+#: templates/items.html
+msgid "Both"
+msgstr "Les deux"
+
+#: templates/items.html templates/libraries.html
+msgid "CSV (spreadsheet)"
+msgstr "CSV (tableur)"
+
+#: templates/mediux_check.html
+msgid "Check"
+msgstr "Vérifier"
+
+#: templates/mediux_check.html
+msgid "Check your Mediux files"
+msgstr "Vérifier vos fichiers Mediux"
+
+#: templates/item.html
+msgid "Choose this poster"
+msgstr "Choisir cette affiche"
+
+#: templates/items.html
+msgid "Clear filter"
+msgstr "Retirer le filtre"
+
+#: templates/item.html
+msgid "Close"
+msgstr "Fermer"
+
+#: templates/base.html
+msgid "Color mode"
+msgstr "Mode de couleur"
+
+#: templates/item.html
+#, python-format
+msgid "Compare (%(count)s)"
+msgstr "Comparer (%(count)s)"
+
+#: templates/item.html
+msgid "Compare the posters"
+msgstr "Comparer les affiches"
+
+#: templates/connect.html
+msgid "Connect"
+msgstr "Se connecter"
+
+#: templates/connect.html
+msgid "Connect to Plex"
+msgstr "Connexion à Plex"
+
+#: templates/items.html
+msgid "Could not check this poster"
+msgstr "Impossible de vérifier cette affiche"
+
+#: templates/activity.html
+msgid "Could not load the data."
+msgstr "Impossible de charger les données."
+
+#: app.py:1918
+#, python-format
+msgid "Could not read \"%(name)s\": %(error)s"
+msgstr "Impossible de lire « %(name)s » : %(error)s"
+
+#: templates/activity.html
+msgid "Count"
+msgstr "Nombre"
+
+#: templates/libraries.html
+msgid "Counted in the totals — click to ignore it"
+msgstr "Comptée dans les totaux — cliquer pour l'ignorer"
+
+#: templates/libraries.html
+msgid "Counted in the totals, click to ignore it"
+msgstr "Comptée dans les totaux, cliquer pour l'ignorer"
+
+#: templates/mediux_check.html
+msgid "Ctrl (or Cmd) + click to select more than one at a time."
+msgstr "Ctrl (ou Cmd) + clic pour en sélectionner plusieurs à la fois."
+
+#: templates/libraries.html
+msgid "Dashboard"
+msgstr "Tableau de bord"
+
+#: templates/mediux_check.html
+msgid "Declared in the YAML but not found on Plex"
+msgstr "Déclaré dans le YAML mais introuvable sur Plex"
+
+#: templates/mediux_check.html
+msgid "Declared in this file but not found on Plex"
+msgstr "Déclaré dans ce fichier mais introuvable sur Plex"
+
+#: templates/base.html
+msgid "Default"
+msgstr "Par défaut"
+
+#: templates/base.html
+msgid "Display"
+msgstr "Affichage"
+
+#: templates/item.html app.py:1041
+msgid "Download"
+msgstr "Télécharger"
+
+#: app.py:3176
+#, python-format
+msgid "Download again failed: %(error)s"
+msgstr "Échec du nouveau téléchargement : %(error)s"
+
+#: app.py:2987
+#, python-format
+msgid "Download from URL failed: %(error)s"
+msgstr "Échec du téléchargement depuis l'URL : %(error)s"
+
+#: templates/_history.html
+msgid "Download this image again? It replaces the current file."
+msgstr "Télécharger à nouveau cette image ? Elle remplace le fichier actuel."
+
+#: app.py:1365
+#, python-format
+msgid "Duplicate key \"%(key)s\" at line %(line)s: only the last occurrence is used."
+msgstr "Clé en double « %(key)s » à la ligne %(line)s : seule la dernière occurrence est utilisée."
+
+#: templates/item.html
+msgid "Episode"
+msgstr "Épisode"
+
+#: templates/item.html
+#, python-format
+msgid "Episode %(n)s"
+msgstr "Épisode %(n)s"
+
+#: templates/activity.html templates/item.html templates/items.html
+msgid "Episodes"
+msgstr "Épisodes"
+
+#: templates/mediux_check.html
+msgid "Episodes not found"
+msgstr "Épisodes introuvables"
+
+#: templates/items.html
+#, python-format
+msgid "Episodes: %(done)s"
+msgstr "Épisodes : %(done)s"
+
+#: templates/items.html
+#, python-format
+msgid "Episodes: %(done)s of %(total)s"
+msgstr "Épisodes : %(done)s sur %(total)s"
+
+#: templates/items.html
+msgid "Episodes: none"
+msgstr "Épisodes : aucun"
+
+#: templates/items.html
+#, python-format
+msgid "Episodes: none (of %(total)s)"
+msgstr "Épisodes : aucun (sur %(total)s)"
+
+#: templates/items.html
+msgid "Episodes: not checked yet"
+msgstr "Épisodes : pas encore vérifiés"
+
+#: templates/mediux_check.html
+msgid "Everything declared in the file exists on Plex."
+msgstr "Tout ce qui est déclaré dans le fichier existe sur Plex."
+
+#: templates/mediux_check.html
+msgid "Everything declared in this file exists on Plex."
+msgstr "Tout ce qui est déclaré dans ce fichier existe sur Plex."
+
+#: templates/libraries.html
+msgid "Everything missing, all libraries"
+msgstr "Tout ce qui manque, toutes les bibliothèques"
+
+#: templates/items.html
+msgid "Everything missing, whole library"
+msgstr "Tout ce qui manque, bibliothèque entière"
+
+#: templates/libraries.html
+msgid "Export everything that is missing, all libraries (ignored ones excluded)"
+msgstr "Exporter tout ce qui manque, toutes les bibliothèques (celles ignorées exclues)"
+
+#: templates/items.html
+msgid "Export what is missing in this library"
+msgstr "Exporter ce qui manque dans cette bibliothèque"
+
+#: templates/_history.html
+msgid "Fetch this image again from where it came from"
+msgstr "Récupérer à nouveau cette image depuis sa source d'origine"
+
+#: templates/_history.html
+msgid "File"
+msgstr "Fichier"
+
+#: templates/item.html
+msgid "First"
+msgstr "Premier"
+
+#: templates/item.html
+msgid "First Item"
+msgstr "Premier élément"
+
+#: templates/mediux_check.html
+msgid "Force Plex to re-scan (otherwise, shows scanned within the last 10 minutes are reused, making the re-scan nearly instantaneous)"
+msgstr "Forcer Plex à relire les séries (sinon, les séries analysées il y a moins de 10 minutes sont réutilisées, ce qui rend la nouvelle analyse quasi instantanée)"
+
+#: app.py:1041
+msgid "From URL"
+msgstr "Depuis une URL"
+
+#: templates/item.html
+msgid "From a URL"
+msgstr "Depuis une URL"
+
+#: app.py:1024
+msgid "GB"
+msgstr "Go"
+
+#: templates/item.html
+msgid "Go"
+msgstr "Aller"
+
+#: templates/items.html
+msgid "Has"
+msgstr "Avec"
+
+#: templates/item.html
+msgid "History"
+msgstr "Historique"
+
+#: templates/_history.html
+msgid "How"
+msgstr "Méthode"
+
+#: templates/base.html
+msgid "Icons"
+msgstr "Icônes"
+
+#: templates/libraries.html
+msgid "Ignored in the totals — click to count it again"
+msgstr "Ignorée dans les totaux — cliquer pour la compter à nouveau"
+
+#: templates/libraries.html
+msgid "Ignored in the totals, click to count it again"
+msgstr "Ignorée dans les totaux, cliquer pour la compter à nouveau"
+
+#: templates/_history.html
+msgid "Image"
+msgstr "Image"
+
+#: templates/item.html
+msgid "Image in the assets folder"
+msgstr "Image dans le dossier assets"
+
+#: templates/item.html
+msgid "Image shown on Plex"
+msgstr "Image affichée sur Plex"
+
+#: templates/item.html
+msgid "In assets"
+msgstr "Dans assets"
+
+#: templates/item.html
+msgid "In assets, not on Plex yet"
+msgstr "Dans assets, pas encore sur Plex"
+
+#: templates/mediux_check.html
+msgid "In the YAML but missing from Plex"
+msgstr "Dans le YAML mais absent de Plex"
+
+#: templates/item.html
+msgid "In the assets folder"
+msgstr "Dans le dossier assets"
+
+#: templates/mediux_check.html
+msgid "In this file but missing from Plex"
+msgstr "Dans ce fichier mais absent de Plex"
+
+#: templates/_history.html
+msgid "Item"
+msgstr "Élément"
+
+#: templates/items.html
+msgid "Items per page"
+msgstr "Éléments par page"
+
+#: templates/activity.html
+msgid "Journal"
+msgstr "Journal"
+
+#: app.py:1024
+msgid "KB"
+msgstr "Ko"
+
+#: templates/activity.html
+msgid "Kind of image"
+msgstr "Type d'image"
+
+#: templates/base.html
+msgid "Language"
+msgstr "Langue"
+
+#: templates/item.html
+msgid "Last"
+msgstr "Dernier"
+
+#: templates/item.html
+msgid "Last Item"
+msgstr "Dernier élément"
+
+#: templates/items.html templates/libraries.html
+msgid "Last checked:"
+msgstr "Dernière vérification :"
+
+#: templates/activity.html
+msgid "Library"
+msgstr "Bibliothèque"
+
+#: app.py:2081 app.py:2626 app.py:1870
+msgid "Library not found."
+msgstr "Bibliothèque introuvable."
+
+#: templates/activity.html
+msgid "Loading…"
+msgstr "Chargement…"
+
+#: templates/base.html
+msgid "Log out"
+msgstr "Se déconnecter"
+
+#: templates/item.html templates/items.html app.py:1042
+msgid "Logo"
+msgstr "Logo"
+
+#: templates/activity.html templates/items.html templates/libraries.html
+msgid "Logos"
+msgstr "Logos"
+
+#: templates/libraries.html
+msgid "Logos / square are switched on, but they have not been counted yet — click “Update”."
+msgstr "Logos / carrés sont activés, mais n'ont pas encore été comptés — cliquez sur « Actualiser »."
+
+#: templates/items.html
+msgid "Logos / square are switched on, but they have not been scanned yet — click “Update” to see them."
+msgstr "Logos / carrés sont activés, mais n'ont pas encore été analysés — cliquez sur « Actualiser » pour les voir."
+
+#: app.py:1024
+msgid "MB"
+msgstr "Mo"
+
+#: templates/item.html
+#, python-format
+msgid "Maximum %(max)s posters to compare at the same time."
+msgstr "Maximum %(max)s affiches à comparer en même temps."
+
+#: templates/base.html
+msgid "Mediux Check"
+msgstr "Mediux Check"
+
+#: templates/items.html
+msgid "Missing"
+msgstr "Manquants"
+
+#: app.py:1679
+msgid "Missing backgrounds"
+msgstr "Fonds manquants"
+
+#: templates/items.html
+msgid "Missing backgrounds, whole library"
+msgstr "Fonds manquants, bibliothèque entière"
+
+#: app.py:1683
+msgid "Missing episodes"
+msgstr "Épisodes manquants"
+
+#: templates/items.html
+msgid "Missing episodes, whole library"
+msgstr "Épisodes manquants, bibliothèque entière"
+
+#: app.py:1680
+msgid "Missing logos"
+msgstr "Logos manquants"
+
+#: templates/items.html
+msgid "Missing logos, whole library"
+msgstr "Logos manquants, bibliothèque entière"
+
+#: app.py:1678
+msgid "Missing posters"
+msgstr "Affiches manquantes"
+
+#: templates/items.html
+msgid "Missing posters, whole library"
+msgstr "Affiches manquantes, bibliothèque entière"
+
+#: app.py:1682
+msgid "Missing seasons"
+msgstr "Saisons manquantes"
+
+#: templates/items.html
+msgid "Missing seasons, whole library"
+msgstr "Saisons manquantes, bibliothèque entière"
+
+#: app.py:1681
+msgid "Missing square"
+msgstr "Carrés manquants"
+
+#: templates/items.html
+msgid "Missing square, whole library"
+msgstr "Carrés manquants, bibliothèque entière"
+
+#: templates/libraries.html
+msgid "Movies (continued)"
+msgstr "Films (suite)"
+
+#: templates/item.html templates/items.html
+msgid "Next"
+msgstr "Suivant"
+
+#: templates/item.html
+msgid "Next Item"
+msgstr "Élément suivant"
+
+#: app.py:2660
+#, python-format
+msgid "No %(label)s missing — filter removed."
+msgstr "Rien de manquant pour « %(label)s » — filtre retiré."
+
+#: app.py:2951
+msgid "No URL provided."
+msgstr "Aucune URL fournie."
+
+#: templates/activity.html
+msgid "No data yet: the curve fills in as you use ArtLayerr."
+msgstr "Pas encore de données : la courbe se remplit au fil de votre utilisation d'ArtLayerr."
+
+#: app.py:3013 app.py:1905
+msgid "No files selected."
+msgstr "Aucun fichier sélectionné."
+
+#: templates/items.html
+msgid "No image"
+msgstr "Aucune image"
+
+#: app.py:2658
+#, python-format
+msgid "No item with %(label)s — filter removed."
+msgstr "Aucun élément avec « %(label)s » — filtre retiré."
+
+#: templates/mediux_check.html
+msgid "No show in your libraries has this TVDB ID: Kometa will have nothing to apply for them."
+msgstr "Aucune série de vos bibliothèques n'a cet ID TVDB : Kometa n'aura rien à appliquer pour elles."
+
+#: templates/items.html
+msgid "No verification has been done yet — the posters/backgrounds below are marked with a “?” until you click “Update” for the first time."
+msgstr "Aucune vérification n'a encore été faite — les affiches/fonds ci-dessous sont marqués d'un « ? » jusqu'au premier clic sur « Actualiser »."
+
+#: templates/base.html
+msgid "None"
+msgstr "Aucun"
+
+#: templates/item.html
+msgid "Nothing downloaded yet for this image"
+msgstr "Rien n'a encore été téléchargé pour cette image"
+
+#: app.py:1712
+msgid "Nothing missing here — everything is covered."
+msgstr "Rien ne manque ici — tout est couvert."
+
+#: app.py:1883
+msgid "Nothing missing — nothing to export."
+msgstr "Rien ne manque — rien à exporter."
+
+#: templates/activity.html
+msgid "Nothing saved yet with these filters: every image you download, paste or upload from now on is listed here."
+msgstr "Rien d'enregistré pour l'instant avec ces filtres : chaque image que vous téléchargez, collez ou importez à partir de maintenant est listée ici."
+
+#: templates/activity.html
+msgid "Nothing saved yet: every image you download, paste or upload from now on is listed here."
+msgstr "Rien d'enregistré pour l'instant : chaque image que vous téléchargez, collez ou importez à partir de maintenant est listée ici."
+
+#: templates/item.html
+msgid "Nothing selected"
+msgstr "Rien de sélectionné"
+
+#: app.py:324
+msgid "Oldest added"
+msgstr "Ajouts les plus anciens"
+
+#: templates/item.html
+msgid "On Plex"
+msgstr "Sur Plex"
+
+#: templates/mediux_check.html
+msgid "On Plex but missing from all files"
+msgstr "Sur Plex mais absent de tous les fichiers"
+
+#: templates/mediux_check.html
+msgid "On Plex but missing from the YAML"
+msgstr "Sur Plex mais absent du YAML"
+
+#: templates/mediux_check.html
+msgid "On Plex but not in any file"
+msgstr "Sur Plex mais dans aucun fichier"
+
+#: templates/mediux_check.html
+msgid "On Plex but not in the file"
+msgstr "Sur Plex mais pas dans le fichier"
+
+#: templates/activity.html
+msgid "One point is saved per day: each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard."
+msgstr "Un point est enregistré par jour : chaque <strong>actualisation</strong> (manuelle ou automatique) et chaque image enregistrée comptent. La courbe commence le jour où cette version a été lancée pour la première fois, elle ne peut pas être reconstituée pour le passé. Les bibliothèques ignorées sont exclues, comme sur le tableau de bord."
+
+#: templates/activity.html
+#, python-format
+msgid "Only one day of data so far (%(day)s). The curve appears from the second day."
+msgstr "Une seule journée de données pour l'instant (%(day)s). La courbe apparaît à partir du deuxième jour."
+
+#: templates/items.html
+msgid "Only the items that already have the image"
+msgstr "Uniquement les éléments qui ont déjà l'image"
+
+#: templates/items.html
+msgid "Only the items that have this image"
+msgstr "Uniquement les éléments qui ont cette image"
+
+#: templates/item.html
+#, python-format
+msgid "Page %(art_page)s / %(art_pages)s"
+msgstr "Page %(art_page)s / %(art_pages)s"
+
+#: templates/activity.html templates/items.html
+msgid "Page navigation"
+msgstr "Navigation entre les pages"
+
+#: templates/login.html
+msgid "Password"
+msgstr "Mot de passe"
+
+#: templates/base.html
+msgid "Patterns"
+msgstr "Motifs"
+
+#: templates/activity.html
+msgid "Percent"
+msgstr "Pourcentage"
+
+#: templates/activity.html
+msgid "Period"
+msgstr "Période"
+
+#: templates/missing_overview.html
+msgid "Pick a library to see what is missing:"
+msgstr "Choisissez une bibliothèque pour voir ce qui manque :"
+
+#: templates/item.html
+msgid "Pick an image below and it will be saved to the assets folder."
+msgstr "Choisissez une image ci-dessous : elle sera enregistrée dans le dossier assets."
+
+#: templates/item.html
+msgid "Plex + Assets"
+msgstr "Plex + Assets"
+
+#: templates/item.html
+msgid "Plex does not offer any logo image for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below."
+msgstr "Plex ne propose aucune image de logo pour cet élément (il faut un Plex Media Server récent). Vous pouvez quand même coller une URL ou importer un fichier ci-dessous."
+
+#: templates/item.html
+msgid "Plex does not offer any square image for this item (it needs a recent Plex Media Server). You can still paste a URL or upload a file below."
+msgstr "Plex ne propose aucune image carrée pour cet élément (il faut un Plex Media Server récent). Vous pouvez quand même coller une URL ou importer un fichier ci-dessous."
+
+#: templates/item.html
+msgid "Plex gave no list of images to compare this file with."
+msgstr "Plex n'a fourni aucune liste d'images avec laquelle comparer ce fichier."
+
+#: templates/item.html
+msgid "Plex only"
+msgstr "Plex seulement"
+
+#: app.py:1879 app.py:2090 app.py:2649
+msgid "Plex took too long to respond (busy server or large library). Try again in a moment."
+msgstr "Plex a mis trop de temps à répondre (serveur occupé ou grande bibliothèque). Réessayez dans un instant."
+
+#: templates/item.html templates/items.html app.py:1042
+msgid "Poster"
+msgstr "Affiche"
+
+#: app.py:2472
+msgid "Poster: checking against Plex…"
+msgstr "Affiche : vérification auprès de Plex…"
+
+#: app.py:2460
+msgid "Poster: in the assets folder"
+msgstr "Affiche : dans le dossier assets"
+
+#: app.py:2436
+msgid "Poster: in the assets folder (Plex gave nothing to compare it with)"
+msgstr "Affiche : dans le dossier assets (Plex n'a rien fourni pour la comparer)"
+
+#: app.py:2435
+msgid "Poster: in the assets folder, not sent to Plex yet (Kometa has not run since)"
+msgstr "Affiche : dans le dossier assets, pas encore envoyée à Plex (Kometa n'est pas repassé depuis)"
+
+#: app.py:2454 app.py:2534
+msgid "Poster: only on Plex, nothing in the assets folder yet"
+msgstr "Affiche : uniquement sur Plex, rien dans le dossier assets pour l'instant"
+
+#: app.py:2431
+msgid "Poster: this exact file is in Plex and is the image Plex shows"
+msgstr "Affiche : ce fichier exact est dans Plex et c'est l'image que Plex affiche"
+
+#: app.py:2433
+msgid "Poster: this file was sent to Plex (Kometa applied it); Plex now shows a later image, for example with overlays"
+msgstr "Affiche : ce fichier a été envoyé à Plex (Kometa l'a appliqué) ; Plex affiche maintenant une image plus récente, par exemple avec des overlays"
+
+#: templates/activity.html templates/items.html templates/libraries.html
+msgid "Posters"
+msgstr "Affiches"
+
+#: app.py:2219
+msgid "Posters/backgrounds check completed."
+msgstr "Vérification des affiches/fonds terminée."
+
+#: templates/item.html
+msgid "Prev"
+msgstr "Préc."
+
+#: templates/items.html
+msgid "Previous"
+msgstr "Précédent"
+
+#: templates/item.html
+msgid "Previous Item"
+msgstr "Élément précédent"
+
+#: templates/activity.html
+msgid "Progress"
+msgstr "Progression"
+
+#: templates/activity.html
+msgid "Progress over time"
+msgstr "Progression dans le temps"
+
+#: app.py:1328
+msgid "PyYAML is not installed in the container: add \"PyYAML\" to requirements.txt and rebuild. Until then, only the show-level comparison (without the season/episode detail) is available."
+msgstr "PyYAML n'est pas installé dans le conteneur : ajoutez « PyYAML » à requirements.txt et reconstruisez l'image. D'ici là, seule la comparaison au niveau des séries (sans le détail des saisons/épisodes) est disponible."
+
+#: app.py:1041
+msgid "Re-download"
+msgstr "Retéléchargement"
+
+#: app.py:323
+msgid "Recently added"
+msgstr "Ajouts récents"
+
+#: templates/base.html
+msgid "Red-green colorblind"
+msgstr "Daltonisme rouge-vert"
+
+#: app.py:1860
+msgid "Run a check first (🔄 Update) before exporting."
+msgstr "Lancez d'abord une vérification (🔄 Actualiser) avant d'exporter."
+
+#: app.py:2652
+msgid "Run a check first before using this filter."
+msgstr "Lancez d'abord une vérification avant d'utiliser ce filtre."
+
+#: templates/mediux_check.html
+msgid "Run the check again to retry."
+msgstr "Relancez la vérification pour réessayer."
+
+#: app.py:2926 app.py:3044 app.py:2985
+#, python-format
+msgid "Saved to %(path)s"
+msgstr "Enregistré dans %(path)s"
+
+#: templates/activity.html templates/items.html
+msgid "Search"
+msgstr "Rechercher"
+
+#: templates/activity.html
+msgid "Search a title…"
+msgstr "Rechercher un titre…"
+
+#: templates/items.html
+msgid "Search for a title…"
+msgstr "Rechercher un titre…"
+
+#: templates/item.html
+msgid "Season"
+msgstr "Saison"
+
+#: templates/item.html app.py:1035
+#, python-format
+msgid "Season %(n)s"
+msgstr "Saison %(n)s"
+
+#: templates/item.html
+msgid "Season Level"
+msgstr "Niveau saison"
+
+#: templates/activity.html templates/item.html templates/items.html
+msgid "Seasons"
+msgstr "Saisons"
+
+#: templates/mediux_check.html
+msgid "Seasons not found"
+msgstr "Saisons introuvables"
+
+#: templates/items.html
+#, python-format
+msgid "Seasons: %(done)s"
+msgstr "Saisons : %(done)s"
+
+#: templates/items.html
+#, python-format
+msgid "Seasons: %(done)s of %(total)s"
+msgstr "Saisons : %(done)s sur %(total)s"
+
+#: templates/items.html
+msgid "Seasons: none"
+msgstr "Saisons : aucune"
+
+#: templates/items.html
+#, python-format
+msgid "Seasons: none (of %(total)s)"
+msgstr "Saisons : aucune (sur %(total)s)"
+
+#: templates/items.html
+msgid "Seasons: not checked yet"
+msgstr "Saisons : pas encore vérifiées"
+
+#: templates/mediux_check.html
+msgid "Select <strong>one or more</strong> files (<code>mediux-series.yml</code>, <code>mediux-animes.yml</code>…): the app reads them, compares them to your TV show libraries on Plex, and lists, for each file, (1) what's listed but doesn't exist in your library (the \"Season: X not found\" / \"Episode: Y in Season: Z … not found\" errors from Kometa, along with the show name) and (2) the shows in the file that are missing from Plex. Finally, (3) the Plex shows that <em>none</em> of the files cover."
+msgstr "Sélectionnez <strong>un ou plusieurs</strong> fichiers (<code>mediux-series.yml</code>, <code>mediux-animes.yml</code>…) : l'application les lit, les compare à vos bibliothèques de séries sur Plex et liste, pour chaque fichier, (1) ce qui est listé mais n'existe pas dans votre bibliothèque (les erreurs « Season: X not found » / « Episode: Y in Season: Z … not found » de Kometa, avec le nom de la série) et (2) les séries du fichier qui manquent sur Plex. Enfin, (3) les séries Plex que <em>aucun</em> des fichiers ne couvre."
+
+#: templates/item.html
+msgid "Show"
+msgstr "Série"
+
+#: templates/item.html
+msgid "Show Level"
+msgstr "Niveau série"
+
+#: templates/base.html
+msgid "Show logos"
+msgstr "Afficher les logos"
+
+#: templates/base.html
+msgid "Show square"
+msgstr "Afficher les carrés"
+
+#: templates/mediux_check.html
+#, python-format
+msgid "Shows in the %(n)s files"
+msgstr "Séries dans les %(n)s fichiers"
+
+#: templates/mediux_check.html
+msgid "Shows in the file"
+msgstr "Séries dans le fichier"
+
+#: templates/mediux_check.html
+msgid "Shows on Plex"
+msgstr "Séries sur Plex"
+
+#: templates/items.html
+msgid "Shows with at least one episode image"
+msgstr "Séries avec au moins une image d'épisode"
+
+#: templates/items.html
+msgid "Shows with at least one season poster"
+msgstr "Séries avec au moins une affiche de saison"
+
+#: templates/mediux_check.html
+msgid "Shows with differences"
+msgstr "Séries avec des différences"
+
+#: templates/login.html
+msgid "Sign in"
+msgstr "Connexion"
+
+#: templates/items.html
+msgid "Sort"
+msgstr "Tri"
+
+#: templates/items.html
+msgid "Sort order"
+msgstr "Ordre de tri"
+
+#: app.py:1035
+msgid "Specials"
+msgstr "Spéciaux"
+
+#: templates/activity.html templates/item.html templates/items.html
+msgid "Square"
+msgstr "Carré"
+
+#: templates/items.html templates/libraries.html
+msgid "Text list"
+msgstr "Liste texte"
+
+#: templates/mediux_check.html
+msgid "The file is not valid YAML."
+msgstr "Le fichier n'est pas du YAML valide."
+
+#: templates/libraries.html
+msgid "The first calculation is in progress as you view this page—it may take a moment, depending on the size of your libraries."
+msgstr "Le premier calcul est en cours pendant que vous consultez cette page — cela peut prendre un moment, selon la taille de vos bibliothèques."
+
+#: templates/activity.html
+msgid "The history database could not be opened (is the assets folder writable?)."
+msgstr "La base de l'historique n'a pas pu être ouverte (le dossier assets est-il accessible en écriture ?)."
+
+#: templates/activity.html
+msgid "The history database is not available."
+msgstr "La base de l'historique n'est pas disponible."
+
+#: templates/activity.html
+msgid "The journal keeps text only, never a copy of an image. “Download again” fetches the image again from its original source (Plex or the URL), so it only works while that source still has it; images uploaded from a file cannot be fetched again."
+msgstr "Le journal ne garde que du texte, jamais de copie d'une image. « Télécharger à nouveau » récupère l'image depuis sa source d'origine (Plex ou l'URL) : cela ne fonctionne donc que tant que cette source l'a encore ; les images importées depuis un fichier ne peuvent pas être récupérées à nouveau."
+
+#: templates/mediux_check.html
+msgid "The season/episode details could therefore not be checked; the show comparison is still available."
+msgstr "Le détail des saisons/épisodes n'a donc pas pu être vérifié ; la comparaison des séries reste disponible."
+
+#: templates/item.html
+msgid "This exact file is in Plex and is the image it shows."
+msgstr "Ce fichier exact est dans Plex et c'est l'image qu'il affiche."
+
+#: templates/item.html
+msgid "This file has not been sent to Plex: Kometa has not run since it was saved."
+msgstr "Ce fichier n'a pas été envoyé à Plex : Kometa n'est pas repassé depuis son enregistrement."
+
+#: templates/mediux_check.html
+msgid "This file is not valid YAML."
+msgstr "Ce fichier n'est pas du YAML valide."
+
+#: templates/item.html
+msgid "This file was sent to Plex (Kometa applied it). Plex now shows a later image, for example the same one with your overlays."
+msgstr "Ce fichier a été envoyé à Plex (Kometa l'a appliqué). Plex affiche maintenant une image plus récente, par exemple la même avec vos overlays."
+
+#: app.py:3141
+msgid "This image has no source to download again (it was uploaded from a file)."
+msgstr "Cette image n'a aucune source pour être retéléchargée (elle a été importée depuis un fichier)."
+
+#: app.py:321
+msgid "Title A–Z"
+msgstr "Titre A–Z"
+
+#: app.py:322
+msgid "Title Z–A"
+msgstr "Titre Z–A"
+
+#: templates/connect.html
+msgid "Token"
+msgstr "Jeton"
+
+#: app.py:290
+msgid "Too many attempts. Try again in a few minutes."
+msgstr "Trop de tentatives. Réessayez dans quelques minutes."
+
+#: templates/libraries.html
+#, python-format
+msgid "Totals leave out %(n)s ignored library."
+msgid_plural "Totals leave out %(n)s ignored libraries."
+msgstr[0] "Les totaux excluent %(n)s bibliothèque ignorée."
+msgstr[1] "Les totaux excluent %(n)s bibliothèques ignorées."
+
+#: templates/mediux_check.html
+#, python-format
+msgid "Unable to read the episodes of %(n)s show (Plex did not respond):"
+msgid_plural "Unable to read the episodes of %(n)s shows (Plex did not respond):"
+msgstr[0] "Impossible de lire les épisodes de %(n)s série (Plex n'a pas répondu) :"
+msgstr[1] "Impossible de lire les épisodes de %(n)s séries (Plex n'a pas répondu) :"
+
+#: templates/activity.html
+msgid "Unit"
+msgstr "Unité"
+
+#: templates/item.html app.py:1041
+msgid "Upload"
+msgstr "Importer"
+
+#: templates/_history.html
+msgid "Uploaded from a file: there is no source to download it again from"
+msgstr "Importée depuis un fichier : il n'y a pas de source pour la télécharger à nouveau"
+
+#: templates/item.html
+msgid "View in IMDb ↗"
+msgstr "Voir sur IMDb ↗"
+
+#: templates/item.html
+msgid "View in Mediux ↗"
+msgstr "Voir sur Mediux ↗"
+
+#: templates/item.html
+msgid "View in Plex ↗"
+msgstr "Voir dans Plex ↗"
+
+#: templates/item.html
+msgid "View in TMDB ↗"
+msgstr "Voir sur TMDB ↗"
+
+#: templates/item.html
+msgid "View in TVDB ↗"
+msgstr "Voir sur TVDB ↗"
+
+#: templates/base.html
+msgid "Visual cues"
+msgstr "Repères visuels"
+
+#: templates/_history.html
+msgid "When"
+msgstr "Quand"
+
+#: app.py:300
+msgid "Wrong password."
+msgstr "Mot de passe incorrect."
+
+#: app.py:1362
+#, python-format
+msgid "YAML syntax error%(where)s: %(problem)s"
+msgstr "Erreur de syntaxe YAML%(where)s : %(problem)s"
+
+#: app.py:325
+msgid "Year (newest)"
+msgstr "Année (récentes d'abord)"
+
+#: app.py:326
+msgid "Year (oldest)"
+msgstr "Année (anciennes d'abord)"
+
+#: templates/libraries.html
+#, python-format
+msgid "auto-update every %(hours)s h"
+msgstr "mise à jour automatique toutes les %(hours)s h"
+
+#: app.py:1670 app.py:729
+msgid "backgrounds"
+msgstr "fonds"
+
+#: app.py:1674 app.py:733
+msgid "episodes"
+msgstr "épisodes"
+
+#: app.py:1671 app.py:730
+msgid "logos"
+msgstr "logos"
+
+#: templates/libraries.html templates/missing_overview.html
+msgid "movie"
+msgstr "film"
+
+#: app.py:1669 app.py:728
+msgid "posters"
+msgstr "affiches"
+
+#: templates/_history.html
+msgid "replaced"
+msgstr "remplacée"
+
+#: app.py:1673 app.py:732
+msgid "seasons"
+msgstr "saisons"
+
+#: templates/libraries.html templates/missing_overview.html
+msgid "show"
+msgstr "série"
+
+#: app.py:1672 app.py:731
+msgid "square"
+msgstr "carrés"
+
+#: app.py:3159
+msgid "the source did not return an image"
+msgstr "la source n'a pas renvoyé d'image"
+
+#: templates/item.html
+msgid "— Background"
+msgstr "— Fond"
+
+#: templates/item.html
+msgid "— Ep."
+msgstr "— Ép."
+
+#: templates/item.html
+msgid "— Logo"
+msgstr "— Logo"
+
+#: templates/item.html
+msgid "— Poster"
+msgstr "— Affiche"
+
+#: templates/item.html
+msgid "— Seasons"
+msgstr "— Saisons"
+
+#: templates/item.html
+msgid "— Square"
+msgstr "— Carré"
+
+#: templates/activity.html templates/missing_overview.html
+msgid "← Dashboard"
+msgstr "← Tableau de bord"
+
+#: templates/_history.html
+msgid "↻ Download again"
+msgstr "↻ Télécharger à nouveau"
+
+#: templates/base.html
+msgid "☀️ Light mode"
+msgstr "☀️ Mode clair"
+
+#: templates/base.html
+msgid "⚙ Settings"
+msgstr "⚙ Réglages"
+
+#: templates/item.html
+msgid "✓ Background"
+msgstr "✓ Fond"
+
+#: templates/item.html
+msgid "✓ Logo"
+msgstr "✓ Logo"
+
+#: templates/item.html
+msgid "✓ Poster"
+msgstr "✓ Affiche"
+
+#: templates/item.html
+msgid "✓ Shown on Plex"
+msgstr "✓ Affichée sur Plex"
+
+#: templates/item.html
+msgid "✓ Square"
+msgstr "✓ Carré"
+
+#: templates/base.html
+#, python-format
+msgid "⬆ %(version)s available"
+msgstr "⬆ %(version)s disponible"
+
+#: templates/items.html templates/libraries.html
+msgid "⬇ Export"
+msgstr "⬇ Exporter"
+
+#: templates/base.html
+msgid "🌙 Dark mode"
+msgstr "🌙 Mode sombre"
+
+#: templates/items.html templates/libraries.html
+msgid "🔄 Update"
+msgstr "🔄 Actualiser"

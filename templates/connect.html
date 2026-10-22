@@ -1,26 +1,26 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Connect to Plex</h2>
+<h2>{{ _("Connect to Plex") }}</h2>
 {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 <form method="post" autocomplete="off">
   <div class="mb-3">
-    <label class="form-label">Base URL</label>
+    <label class="form-label">{{ _("Base URL") }}</label>
     <input type="text" name="base_url" class="form-control" placeholder="http://localhost:32400" value="{{ default_base_url }}" required>
   </div>
   <div class="mb-3">
-    <label class="form-label">Token</label>
+    <label class="form-label">{{ _("Token") }}</label>
     {# the configured token is never written into the page: leave blank to use it #}
     <input type="password" name="token" class="form-control" autocomplete="new-password"
            placeholder="{{ '••••••••••••••••' if token_preset else 'YOUR_PLEX_TOKEN' }}"
            {% if not token_preset %}required{% endif %}>
     {% if token_preset %}
-      <div class="form-text">A token is already configured on the server. Leave this blank to use it (works for the configured URL only).</div>
+      <div class="form-text">{{ _("A token is already configured on the server. Leave this blank to use it (works for the configured URL only).") }}</div>
     {% endif %}
   </div>
   <div class="mb-3">
-    <label class="form-label">Base Image Asset directory</label>
+    <label class="form-label">{{ _("Base Image Asset directory") }}</label>
     <input type="text" name="asset_dir" class="form-control" placeholder="assets" value="{{ default_asset_dir }}">
   </div>
-  <button type="submit" class="btn btn-primary">Connect</button>
+  <button type="submit" class="btn btn-primary">{{ _("Connect") }}</button>
 </form>
 {% endblock %}

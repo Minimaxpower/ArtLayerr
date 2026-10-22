@@ -188,6 +188,7 @@ The **Settings** menu (top right) gathers the display options:
 - **Show logos / Show square**: logos (`logo.png`) and square (`square.png`) are optional, so they are hidden by default. Switching them on adds an `L` / `Q` chip to every card, an extra entry in the "Art Type" list of the image picker, two more rings on the dashboard, a filter, and columns in the exports. The choice is kept in your browser; everything is scanned either way, so no new check is needed (apart from one **Update** after upgrading).
 - **Color mode**: *Default*, *Red-green colorblind* (Okabe-Ito palette) or *Blue-yellow colorblind*. It changes the colors of the dashboard bars and rings and of the "complete / partial" chips and badges.
 - **Visual cues**: *None*, *Icons* (a small symbol per art type on the dashboard, and ✓ / ◐ / ✕ on the status chips) or *Patterns* (each art type gets its own hatching on the bars and rings, and partial / missing chips get a texture). Cues work with any color mode, so color is never the only signal. Like the other display options, both choices are kept in your browser.
+- **Language**: *English* or *Français* (see [Translations](#translations)). It is a display choice kept in your browser; English is the default and nothing switches on its own.
 - Light / dark mode, and **Log out** when a password is set.
 
 Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click the eye icon on the library's card (open eye = counted, crossed-out eye = ignored). It stays visible, greyed out, and you can still open it; click the eye again to count it. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.
@@ -195,6 +196,20 @@ Libraries you don't want to count (a test library, a kids' library…) can be le
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 
 ![](images/mediux-check.jpg)
+
+## Translations
+
+The interface is available in English (default) and French; pick the language in **Settings → Language**. Dates in the browser follow the chosen language. The CSV / text exports always keep English column names, so they stay easy to script.
+
+Translations are plain [gettext](https://www.gnu.org/software/gettext/) files in `translations/` (`fr.po`), read when ArtLayerr starts: no compilation step and no extra dependency. A language shows up in the picker as soon as its `.po` file exists. A text missing from a language simply appears in English.
+
+To add or fix a language:
+
+1. Copy `translations/messages.pot` to `translations/<code>.po` (for example `de.po`) and fill in the header (`Language`, `Plural-Forms`, and `X-Native-Name`, the name shown in the picker, for example `Deutsch`).
+2. Translate the `msgstr` lines with any text editor, [Poedit](https://poedit.net) or Weblate. Keep the `%(name)s` placeholders and the HTML tags (`<strong>`…) as they are in the original.
+3. Run `python tools/translations.py check`: it lists the texts that are missing, and the placeholders or tags that differ from the English text.
+
+After the code changes (new or edited texts), `python tools/translations.py pot` rebuilds the template and `python tools/translations.py sync` adds the new texts to every `.po` file, ready to translate.
 
 ## Credits
 

@@ -1,30 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2 class="mb-4">Check your Mediux files</h2>
+<h2 class="mb-4">{{ _("Check your Mediux files") }}</h2>
 
 <div class="card p-4 mb-4">
   <p class="text-muted mb-3">
-    Select <strong>one or more</strong> files (<code>mediux-series.yml</code>, <code>mediux-animes.yml</code>…):
-    the app reads them, compares them to your TV show libraries on Plex, and lists, for each file,
-    (1) what's listed but doesn't exist in your library (the "Season: X not found" /
-    "Episode: Y in Season: Z … not found" errors from Kometa, along with the show name) and
-    (2) the shows in the file that are missing from Plex. Finally, (3) the Plex shows that <em>none</em> of the files cover.
+    {{ _("Select <strong>one or more</strong> files (<code>mediux-series.yml</code>, <code>mediux-animes.yml</code>…): the app reads them, compares them to your TV show libraries on Plex, and lists, for each file, (1) what's listed but doesn't exist in your library (the \"Season: X not found\" / \"Episode: Y in Season: Z … not found\" errors from Kometa, along with the show name) and (2) the shows in the file that are missing from Plex. Finally, (3) the Plex shows that <em>none</em> of the files cover.")|safe }}
   </p>
   <form method="post" enctype="multipart/form-data" id="mediux-form">
     <div class="d-flex gap-2">
       <input type="file" name="yml_file" accept=".yml,.yaml" class="form-control" multiple required>
-      <button type="submit" class="btn btn-primary text-nowrap" id="mediux-submit">Check</button>
+      <button type="submit" class="btn btn-primary text-nowrap" id="mediux-submit">{{ _("Check") }}</button>
     </div>
-    <div class="form-text">Ctrl (or Cmd) + click to select more than one at a time.</div>
+    <div class="form-text">{{ _("Ctrl (or Cmd) + click to select more than one at a time.") }}</div>
     <div class="form-check mt-3">
       <input class="form-check-input" type="checkbox" name="force_refresh" value="1" id="force_refresh">
       <label class="form-check-label small text-muted" for="force_refresh">
-        Force Plex to re-scan (otherwise, shows scanned within the last 10 minutes are reused, making the re-scan nearly instantaneous)
+        {{ _("Force Plex to re-scan (otherwise, shows scanned within the last 10 minutes are reused, making the re-scan nearly instantaneous)") }}
       </label>
     </div>
     <div class="small text-muted mt-2 d-none" id="mediux-wait">
-      Analysis in progress: the app is reading the episodes of each show in the files from Plex; this may take up to one minute the first time.
-      The other pages remain available during this time.
+      {{ _("Analysis in progress: the app is reading the episodes of each show in the files from Plex; this may take up to one minute the first time. The other pages remain available during this time.") }}
     </div>
   </form>
 </div>
@@ -33,7 +28,7 @@
   document.getElementById('mediux-form').addEventListener('submit', function () {
     var btn = document.getElementById('mediux-submit');
     btn.disabled = true;
-    btn.textContent = 'Analyzing…';
+    btn.textContent = {{ _('Analyzing…')|tojson }};
     document.getElementById('mediux-wait').classList.remove('d-none');
   });
 </script>
@@ -45,34 +40,33 @@
       <div class="card p-3 text-center">
         <div class="fs-3 fw-bold">{{ results.yml_entry_count }}</div>
         <div class="small text-muted text-uppercase">
-          Shows in {{ 'the ' ~ results.files|length ~ ' files' if results.multi else 'the file' }}
+          {% if results.multi %}{{ _("Shows in the %(n)s files", n=results.files|length) }}{% else %}{{ _("Shows in the file") }}{% endif %}
         </div>
       </div>
     </div>
     <div class="col-md-3 col-6">
       <div class="card p-3 text-center">
         <div class="fs-3 fw-bold">{{ results.total_shows }}</div>
-        <div class="small text-muted text-uppercase">Shows on Plex</div>
+        <div class="small text-muted text-uppercase">{{ _("Shows on Plex") }}</div>
       </div>
     </div>
     <div class="col-md-3 col-6">
       <div class="card p-3 text-center">
         <div class="fs-3 fw-bold" style="color: var(--accent);">{{ results.gap_show_count }}</div>
-        <div class="small text-muted text-uppercase">Shows with differences</div>
+        <div class="small text-muted text-uppercase">{{ _("Shows with differences") }}</div>
       </div>
     </div>
     <div class="col-md-3 col-6">
       <div class="card p-3 text-center">
         <div class="fs-3 fw-bold">{{ results.total_missing }}</div>
-        <div class="small text-muted text-uppercase">On Plex but not in {{ 'any file' if results.multi else 'the file' }}</div>
+        <div class="small text-muted text-uppercase">{% if results.multi %}{{ _("On Plex but not in any file") }}{% else %}{{ _("On Plex but not in the file") }}{% endif %}</div>
       </div>
     </div>
   </div>
 
   {% if results.shows_read %}
     <p class="small text-muted mb-4">
-      {{ results.shows_read }} show{{ 's' if results.shows_read != 1 else '' }} analyzed
-      ({{ results.from_cache }} from cache) in {{ results.elapsed }} s.
+      {{ ngettext("%(n)s show analyzed (%(cache)s from cache) in %(secs)s s.", "%(n)s shows analyzed (%(cache)s from cache) in %(secs)s s.", results.shows_read, cache=results.from_cache, secs=results.elapsed) }}
     </p>
   {% endif %}
 
@@ -81,15 +75,15 @@
     {% if results.multi %}
       <div class="d-flex justify-content-between align-items-baseline border-bottom pb-2 mb-3 mt-5">
         <h3 class="mb-0 fs-4">{{ f.name }}</h3>
-        <span class="text-muted small">{{ f.entry_count }} show{{ 's' if f.entry_count != 1 else '' }}</span>
+        <span class="text-muted small">{{ ngettext("%(n)s show", "%(n)s shows", f.entry_count) }}</span>
       </div>
     {% endif %}
 
     {% if f.yaml_error %}
       <div class="alert alert-danger">
-        <strong>{{ 'This file' if results.multi else 'The file' }} is not valid YAML.</strong><br>
+        <strong>{% if results.multi %}{{ _("This file is not valid YAML.") }}{% else %}{{ _("The file is not valid YAML.") }}{% endif %}</strong><br>
         {{ f.yaml_error }}<br>
-        <span class="small">The season/episode details could therefore not be checked; the show comparison is still available.</span>
+        <span class="small">{{ _("The season/episode details could therefore not be checked; the show comparison is still available.") }}</span>
       </div>
     {% endif %}
 
@@ -98,13 +92,10 @@
     {% endfor %}
 
     {% if not f.yaml_error %}
-      <h4 class="mb-3 mt-3">Declared in {{ 'this file' if results.multi else 'the YAML' }} but not found on Plex</h4>
+      <h4 class="mb-3 mt-3">{% if results.multi %}{{ _("Declared in this file but not found on Plex") }}{% else %}{{ _("Declared in the YAML but not found on Plex") }}{% endif %}</h4>
       {% if f.gaps_by_library %}
         <p class="text-muted small">
-          {{ f.gap_totals.seasons }} season{{ 's' if f.gap_totals.seasons != 1 else '' }}
-          and {{ f.gap_totals.episodes }} episode{{ 's' if f.gap_totals.episodes != 1 else '' }} declared
-          do not exist in your library. This is what Kometa reports as "not found": it skips these entries and carries on.
-          Either you are missing these files, or the numbering in the file doesn't match Plex's.
+          {{ _("%(seasons)s and %(episodes)s declared do not exist in your library. This is what Kometa reports as \"not found\": it skips these entries and carries on. Either you are missing these files, or the numbering in the file doesn't match Plex's.", seasons=ngettext("%(n)s season", "%(n)s seasons", f.gap_totals.seasons), episodes=ngettext("%(n)s episode", "%(n)s episodes", f.gap_totals.episodes)) }}
         </p>
         {% for lib in f.gaps_by_library %}
           <h6 class="text-uppercase small text-muted mb-2 mt-3" style="letter-spacing: .05em;">{{ lib.section_title }}</h6>
@@ -116,23 +107,23 @@
                   <span class="text-muted small">TVDB {{ gap.tvdb_id }}</span>
                 </div>
                 {% if gap.missing_seasons %}
-                  <div class="small mt-1"><span class="badge bg-secondary">Seasons not found</span> {{ gap.missing_seasons }}</div>
+                  <div class="small mt-1"><span class="badge bg-secondary">{{ _("Seasons not found") }}</span> {{ gap.missing_seasons }}</div>
                 {% endif %}
                 {% for ep in gap.missing_episodes %}
-                  <div class="small mt-1"><span class="badge bg-secondary">Episodes not found</span> {{ ep.season }}: {{ ep.episodes }}</div>
+                  <div class="small mt-1"><span class="badge bg-secondary">{{ _("Episodes not found") }}</span> {{ ep.season }}: {{ ep.episodes }}</div>
                 {% endfor %}
               </li>
             {% endfor %}
           </ul>
         {% endfor %}
       {% else %}
-        <div class="alert alert-success">Everything declared in {{ 'this file' if results.multi else 'the file' }} exists on Plex.</div>
+        <div class="alert alert-success">{% if results.multi %}{{ _("Everything declared in this file exists on Plex.") }}{% else %}{{ _("Everything declared in the file exists on Plex.") }}{% endif %}</div>
       {% endif %}
     {% endif %}
 
     {% if f.not_in_plex %}
-      <h4 class="mb-3 mt-4">In {{ 'this file' if results.multi else 'the YAML' }} but missing from Plex</h4>
-      <p class="text-muted small">No show in your libraries has this TVDB ID: Kometa will have nothing to apply for them.</p>
+      <h4 class="mb-3 mt-4">{% if results.multi %}{{ _("In this file but missing from Plex") }}{% else %}{{ _("In the YAML but missing from Plex") }}{% endif %}</h4>
+      <p class="text-muted small">{{ _("No show in your libraries has this TVDB ID: Kometa will have nothing to apply for them.") }}</p>
       <ul class="list-group mb-4">
         {% for entry in f.not_in_plex %}
           <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -146,21 +137,20 @@
 
   {% if results.unreadable %}
     <div class="alert alert-warning mt-4">
-      Unable to read the episodes of {{ results.unreadable|length }} show{{ 's' if results.unreadable|length != 1 else '' }}
-      (Plex did not respond):
+      {{ ngettext("Unable to read the episodes of %(n)s show (Plex did not respond):", "Unable to read the episodes of %(n)s shows (Plex did not respond):", results.unreadable|length) }}
       {% for u in results.unreadable %}{{ u.title }} ({{ u.library }}){{ ', ' if not loop.last else '' }}{% endfor %}.
-      Run the check again to retry.
+      {{ _("Run the check again to retry.") }}
     </div>
   {% endif %}
 
   {# ---------- on Plex but covered by no file ---------- #}
-  <h4 class="mb-3 mt-5">On Plex but missing from {{ 'all files' if results.multi else 'the YAML' }}</h4>
+  <h4 class="mb-3 mt-5">{% if results.multi %}{{ _("On Plex but missing from all files") }}{% else %}{{ _("On Plex but missing from the YAML") }}{% endif %}</h4>
   {% if results.total_missing == 0 %}
-    <div class="alert alert-success">All your shows are already covered by {{ 'these files' if results.multi else 'this file' }}.</div>
+    <div class="alert alert-success">{% if results.multi %}{{ _("All your shows are already covered by these files.") }}{% else %}{{ _("All your shows are already covered by this file.") }}{% endif %}</div>
   {% else %}
     {% for lib in results.missing_by_library %}
       <h6 class="text-uppercase small text-muted mb-2 mt-3" style="letter-spacing: .05em;">
-        {{ lib.section_title }}: {{ lib.shows|length }} missing
+        {{ ngettext("%(library)s: %(n)s missing", "%(library)s: %(n)s missing", lib.shows|length, library=lib.section_title) }}
       </h6>
       <ul class="list-group mb-4">
         {% for show in lib.shows %}

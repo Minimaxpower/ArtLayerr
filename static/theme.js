@@ -6,7 +6,8 @@
 
   function apply(theme) {
     html.setAttribute('data-bs-theme', theme);
-    toggle.textContent = theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+    // the button shows the mode you would switch to (texts come from the page, translated)
+    toggle.textContent = theme === 'dark' ? toggle.dataset.labelLight : toggle.dataset.labelDark;
   }
 
   apply(stored || (mq.matches ? 'dark' : 'light'));
@@ -24,7 +25,7 @@
     var ts = parseFloat(el.dataset.ts);
     if (!ts) return;
     var d = new Date(ts * 1000);
-    el.textContent = d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    el.textContent = d.toLocaleString(document.documentElement.lang || undefined, { dateStyle: 'short', timeStyle: 'short' });
     el.setAttribute('datetime', d.toISOString());
   });
 })();

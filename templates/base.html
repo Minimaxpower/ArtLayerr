@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-bs-theme="light" data-cb="{{ cb_mode }}" data-cue="{{ cue_mode }}">
+<html lang="{{ lang }}" data-bs-theme="light" data-cb="{{ cb_mode }}" data-cue="{{ cue_mode }}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -264,47 +264,51 @@
           <span>ArtLayerr</span>
         </a>
         <a href="https://github.com/Minimaxpower/ArtLayerr/releases" target="_blank" rel="noopener" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary-emphasis fw-normal text-decoration-none me-1" title="ArtLayerr {{ app_version }}">{{ app_version.split("-")[0] }}</a>
-        {% if update_info %}<a href="{{ update_info.url }}" target="_blank" rel="noopener" class="badge rounded-pill bg-warning text-dark text-decoration-none me-1" title="ArtLayerr {{ update_info.version }} is available. To update: docker compose pull &amp;&amp; docker compose up -d">⬆ {{ update_info.version }} available</a>{% endif %}
-        {% if request.endpoint != 'login' %}<a href="{{ url_for('mediux_check') }}" class="btn btn-outline-secondary btn-sm ms-3">Mediux Check</a><a href="{{ url_for('activity') }}" class="btn btn-outline-secondary btn-sm ms-2">Activity</a>{% endif %}
+        {% if update_info %}<a href="{{ update_info.url }}" target="_blank" rel="noopener" class="badge rounded-pill bg-warning text-dark text-decoration-none me-1" title="{{ _("ArtLayerr %(version)s is available. To update: docker compose pull && docker compose up -d", version=update_info.version) }}">{{ _("⬆ %(version)s available", version=update_info.version) }}</a>{% endif %}
+        {% if request.endpoint != 'login' %}<a href="{{ url_for('mediux_check') }}" class="btn btn-outline-secondary btn-sm ms-3">{{ _("Mediux Check") }}</a><a href="{{ url_for('activity') }}" class="btn btn-outline-secondary btn-sm ms-2">{{ _("Activity") }}</a>{% endif %}
         <div class="dropdown ms-auto">
-          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">⚙ Settings</button>
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">{{ _("⚙ Settings") }}</button>
           <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width: 250px;">
             {% if request.endpoint != 'login' %}
-              <li><h6 class="dropdown-header px-2">Display</h6></li>
+              <li><h6 class="dropdown-header px-2">{{ _("Display") }}</h6></li>
               <li>
                 <form method="post" action="{{ url_for('save_settings') }}" class="px-2 mb-1">
                   <input type="hidden" name="next" value="{{ request.path }}{% if request.query_string %}?{{ request.query_string.decode('utf-8', 'replace') }}{% endif %}">
                   <div class="form-check form-switch mb-1">
                     <input class="form-check-input" type="checkbox" role="switch" id="set-logo" name="show_logo" value="1" {% if show_logo %}checked{% endif %} onchange="this.form.submit()">
-                    <label class="form-check-label" for="set-logo">Show logos <span class="text-muted">(L)</span></label>
+                    <label class="form-check-label" for="set-logo">{{ _("Show logos") }} <span class="text-muted">(L)</span></label>
                   </div>
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="set-square" name="show_square" value="1" {% if show_square %}checked{% endif %} onchange="this.form.submit()">
-                    <label class="form-check-label" for="set-square">Show square <span class="text-muted">(Q)</span></label>
+                    <label class="form-check-label" for="set-square">{{ _("Show square") }} <span class="text-muted">(Q)</span></label>
                   </div>
                   <hr class="dropdown-divider mx-0 my-2">
-                  <label class="form-label small text-muted mb-1" for="set-cb">Color mode</label>
+                  <label class="form-label small text-muted mb-1" for="set-cb">{{ _("Color mode") }}</label>
                   <select class="form-select form-select-sm mb-2" id="set-cb" name="cb" onchange="this.form.submit()">
-                    <option value="off"{% if cb_mode == 'off' %} selected{% endif %}>Default</option>
-                    <option value="rg"{% if cb_mode == 'rg' %} selected{% endif %}>Red-green colorblind</option>
-                    <option value="by"{% if cb_mode == 'by' %} selected{% endif %}>Blue-yellow colorblind</option>
+                    <option value="off"{% if cb_mode == 'off' %} selected{% endif %}>{{ _("Default") }}</option>
+                    <option value="rg"{% if cb_mode == 'rg' %} selected{% endif %}>{{ _("Red-green colorblind") }}</option>
+                    <option value="by"{% if cb_mode == 'by' %} selected{% endif %}>{{ _("Blue-yellow colorblind") }}</option>
                   </select>
-                  <label class="form-label small text-muted mb-1" for="set-cue">Visual cues</label>
+                  <label class="form-label small text-muted mb-1" for="set-cue">{{ _("Visual cues") }}</label>
                   <select class="form-select form-select-sm" id="set-cue" name="cue" onchange="this.form.submit()">
-                    <option value="none"{% if cue_mode == 'none' %} selected{% endif %}>None</option>
-                    <option value="icons"{% if cue_mode == 'icons' %} selected{% endif %}>Icons</option>
-                    <option value="patterns"{% if cue_mode == 'patterns' %} selected{% endif %}>Patterns</option>
+                    <option value="none"{% if cue_mode == 'none' %} selected{% endif %}>{{ _("None") }}</option>
+                    <option value="icons"{% if cue_mode == 'icons' %} selected{% endif %}>{{ _("Icons") }}</option>
+                    <option value="patterns"{% if cue_mode == 'patterns' %} selected{% endif %}>{{ _("Patterns") }}</option>
                   </select>
-                  <noscript><button type="submit" class="btn btn-sm btn-secondary mt-2">Apply</button></noscript>
+                  <label class="form-label small text-muted mb-1 mt-2" for="set-lang">{{ _("Language") }}</label>
+                  <select class="form-select form-select-sm" id="set-lang" name="lang" onchange="this.form.submit()">
+                    {% for code, name in languages %}<option value="{{ code }}"{% if code == lang %} selected{% endif %}>{{ name }}</option>{% endfor %}
+                  </select>
+                  <noscript><button type="submit" class="btn btn-sm btn-secondary mt-2">{{ _("Apply") }}</button></noscript>
                 </form>
               </li>
               <li><hr class="dropdown-divider"></li>
             {% endif %}
-            <li><h6 class="dropdown-header px-2">Appearance</h6></li>
-            <li><button id="theme-toggle" type="button" class="dropdown-item rounded">🌙 Dark mode</button></li>
+            <li><h6 class="dropdown-header px-2">{{ _("Appearance") }}</h6></li>
+            <li><button id="theme-toggle" type="button" class="dropdown-item rounded" data-label-dark="{{ _("🌙 Dark mode") }}" data-label-light="{{ _("☀️ Light mode") }}">{{ _("🌙 Dark mode") }}</button></li>
             {% if auth_enabled and session.get('authenticated') %}
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item rounded" href="{{ url_for('logout') }}">Log out</a></li>
+              <li><a class="dropdown-item rounded" href="{{ url_for('logout') }}">{{ _("Log out") }}</a></li>
             {% endif %}
           </ul>
         </div>
