@@ -44,6 +44,7 @@ You have to fill in the `.env` file for it to work.
          - DISABLE_UPDATE_CHECK=${DISABLE_UPDATE_CHECK:-}
          - AUTO_REFRESH_HOURS=${AUTO_REFRESH_HOURS:-}
          - ASSETS_DEPTH=${ASSETS_DEPTH:-}
+         - ITEMS_CACHE_SECONDS=${ITEMS_CACHE_SECONDS:-}
    ```
 
 3. Create a `.env` file next to it (you can start from [`.env.example`](.env.example)):
@@ -56,6 +57,7 @@ You have to fill in the `.env` file for it to work.
    DISABLE_UPDATE_CHECK=
    AUTO_REFRESH_HOURS=
    ASSETS_DEPTH=
+   ITEMS_CACHE_SECONDS=
    ```
 
    | Variable | Description |
@@ -67,6 +69,7 @@ You have to fill in the `.env` file for it to work.
    | `APP_PASSWORD` | *Optional.* If set, the whole app asks for this password. Leave empty to disable (default) |
    | `DISABLE_UPDATE_CHECK` | *Optional.* The "new version available" badge relies on a check against GitHub (at most one request every 6 hours). Set to `1` (or `true`) to turn it off. Empty, unset or `0` keeps it on (default) |
    | `AUTO_REFRESH_HOURS` | *Optional.* Recompute the dashboard and re-scan the assets folder automatically every X hours (for example `6`), at most every 15 minutes. Empty or `0` = off, the **Update** buttons stay the only trigger (default). Needs `PLEX_BASE_URL` and `PLEX_TOKEN` to be set in `.env` |
+   | `ITEMS_CACHE_SECONDS` | *Optional.* How long, in seconds, the list of titles of a library is kept in memory before Plex is asked again. Listing a whole library is the slowest thing ArtLayerr does, so on big libraries this makes pages and navigation much faster. Empty = `300` (5 minutes); `0` turns the cache off. The dashboard refresh fills it, and the **Update** button of a library empties it, so titles added to or removed from Plex show up right after an Update, or after this delay. The titles are kept in memory (a few MB per thousand titles) |
    | `ASSETS_DEPTH` | *Optional.* How many folder levels below `ASSETS_DIR` are searched for asset folders. Empty = `2` (default), which covers every layout listed below. Set `3` if your asset folders are nested one level deeper, for example `assets/<Library>/<Group>/<Title>/` |
 
    ArtLayerr finds your existing assets whatever the layout of the assets folder, as long as each item has its own folder containing `poster.jpg`, `background.jpg`, `logo.png`, `square.png`, `Season01.jpg` or `S01E01.jpg`:

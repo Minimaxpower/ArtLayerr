@@ -8,6 +8,7 @@ import re
 import unicodedata
 import csv
 import hmac
+import copy
 import hashlib
 import io
 import threading
@@ -826,7 +827,7 @@ def get_missing_rating_keys(section, missing_type="poster", force=False, sort=DE
         or entry["scanned_at"] < max(_ASSET_CACHE["computed_at"], _ASSET_CACHE.get("changed_at") or 0)
         or time.time() - entry["scanned_at"] > _MISSING_CACHE_TTL
     ):
-        items = sort_items(list(section.all()), sort)
+        items = get_section_items(section, sort)
         annotate_asset_flags(items)
         entry = {
             "keys": [i.ratingKey for i in items if _matches(i, missing_type)],
@@ -1132,6 +1133,7 @@ def compute_dashboard_stats(plex, asset_dir=None):
             items = list(section.all())
         except requests.exceptions.RequestException:
             continue
+        _store_section_items(section, items)  # the list pages reuse it
         annotate_asset_flags(items, asset_dir)
         total = len(items)
         rows_by_section[str(section.key)] = [
@@ -1523,15 +1525,105 @@ def set_token(token, from_env=False):
     session["cid"] = cid
 
 
+# One PlexServer per (address, token), reused for ten minutes: creating one asks
+# Plex for its identity first, a network round trip that every page used to pay.
+_PLEX_POOL = {}
+_PLEX_POOL_LOCK = threading.Lock()
+_PLEX_POOL_SECONDS = 600
+
+
 def get_plex():
     base_url = session.get("base_url")
     token = get_token()
     if not base_url or not token:
         return None
+    key = (base_url, token)
+    now = time.time()
+    with _PLEX_POOL_LOCK:
+        hit = _PLEX_POOL.get(key)
+        if hit and now - hit[1] < _PLEX_POOL_SECONDS:
+            return hit[0]
     # default plexapi timeout is 30s; a big library or a busy Plex server
     # (e.g. mid-scan, or Kometa running) can take longer than that to answer
     # a full "section.all()" request, so give it more room before giving up
-    return PlexServer(base_url, token, timeout=120)
+    server = PlexServer(base_url, token, timeout=120)
+    with _PLEX_POOL_LOCK:
+        _PLEX_POOL[key] = (server, now)
+    return server
+
+
+# ---- cache of the library lists ----------------------------------------------
+# Listing a whole library (section.all()) is by far the slowest thing the app
+# does: Plex builds a big answer and plexapi turns every title into an object,
+# several seconds for a few thousand titles. Every page of the list and of the
+# item pages used to repeat it. The list is now kept in memory for a few
+# minutes (ITEMS_CACHE_SECONDS, 0 turns it off): the dashboard refresh fills it
+# for free, the "Update" button of a library empties it. Each request works on
+# its own shallow copies, because the pages write their own marks on the items
+# (position, "has a poster"...) and requests run in parallel threads.
+ITEMS_CACHE_SECONDS = float(os.environ.get("ITEMS_CACHE_SECONDS") or 300)
+ITEMS_CACHE_MAX_ITEMS = int(os.environ.get("ITEMS_CACHE_MAX_ITEMS") or 20000)
+_ITEMS_CACHE = {}      # (server address, library key) -> {"items", "at", "used"}
+_ITEMS_LOCK = threading.RLock()
+_ITEMS_LOADING = {}    # (server address, library key) -> lock: one load at a time
+
+
+def _items_key(section):
+    server = getattr(section, "_server", None)
+    return (getattr(server, "_baseurl", "") or "", str(section.key))
+
+
+def _evict_items():
+    """Keep at most ITEMS_CACHE_MAX_ITEMS titles in memory (least recently used first out)."""
+    with _ITEMS_LOCK:
+        total = sum(len(e["items"]) for e in _ITEMS_CACHE.values())
+        for key in sorted(_ITEMS_CACHE, key=lambda k: _ITEMS_CACHE[k]["used"]):
+            if total <= ITEMS_CACHE_MAX_ITEMS or len(_ITEMS_CACHE) <= 1:
+                break
+            total -= len(_ITEMS_CACHE.pop(key)["items"])
+
+
+def _store_section_items(section, items):
+    if ITEMS_CACHE_SECONDS <= 0:
+        return
+    now = time.time()
+    with _ITEMS_LOCK:
+        _ITEMS_CACHE[_items_key(section)] = {"items": [copy.copy(i) for i in items], "at": now, "used": now}
+    _evict_items()
+
+
+def get_section_items(section, sort=None, force=False):
+    """The titles of a library (sorted when `sort` is given), from the cache when
+    it is recent enough, otherwise from Plex. Always returns fresh copies."""
+    key = _items_key(section)
+    if ITEMS_CACHE_SECONDS > 0 and not force:
+        with _ITEMS_LOCK:
+            hit = _ITEMS_CACHE.get(key)
+            if hit and time.time() - hit["at"] < ITEMS_CACHE_SECONDS:
+                hit["used"] = time.time()
+                items = [copy.copy(i) for i in hit["items"]]
+                return sort_items(items, sort) if sort else items
+    with _ITEMS_LOCK:
+        loading = _ITEMS_LOADING.setdefault(key, threading.Lock())
+    with loading:   # several pages opening at once load the library only once
+        if ITEMS_CACHE_SECONDS > 0 and not force:
+            with _ITEMS_LOCK:
+                hit = _ITEMS_CACHE.get(key)
+                if hit and time.time() - hit["at"] < ITEMS_CACHE_SECONDS:
+                    hit["used"] = time.time()
+                    items = [copy.copy(i) for i in hit["items"]]
+                    return sort_items(items, sort) if sort else items
+        raw = list(section.all())
+        _store_section_items(section, raw)
+    return sort_items(raw, sort) if sort else raw
+
+
+def invalidate_items(section_key=None):
+    """Forget the cached list of one library (or of all): the next page asks Plex again."""
+    with _ITEMS_LOCK:
+        for key in list(_ITEMS_CACHE):
+            if section_key is None or key[1] == str(section_key):
+                _ITEMS_CACHE.pop(key, None)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -1787,7 +1879,7 @@ def collect_missing_rows(section, missing_type="", art_types=()):
     kinds = _export_kinds(section.type, art_types)
     if missing_type and missing_type not in kinds:
         return []
-    items = sort_items(list(section.all()), "title")
+    items = get_section_items(section, "title")
     annotate_asset_flags(items)
     rows = []
     for item in items:
@@ -2089,7 +2181,7 @@ def list_items(section_key):
     # Previous/Next use the same order (same cookie), so positions line up
     sort = get_sort_pref()
     try:
-        all_items_full = sort_items(list(section.all()), sort)
+        all_items_full = get_section_items(section, sort)
     except requests.exceptions.RequestException:
         flash(tr("Plex took too long to respond (busy server or large library). Try again in a moment."))
         return redirect(url_for("libraries"))
@@ -2220,6 +2312,7 @@ def refresh_assets(section_key):
         return redirect(url_for("connect"))
 
     refresh_asset_check(plex, section_key)
+    invalidate_items(section_key)  # "Update" also picks up titles added to or removed from Plex
     flash(tr("Posters/backgrounds check completed."))
 
     # bounce back to wherever the person was (list or item page), keeping
@@ -2678,7 +2771,7 @@ def browse(section_key):
             item = plex.fetchItem(missing_keys[item_page - 1])
     else:
         try:
-            items = sort_items(list(section.all()), get_sort_pref())
+            items = get_section_items(section, get_sort_pref())
         except requests.exceptions.RequestException:
             flash(tr("Plex took too long to respond (busy server or large library). Try again in a moment."))
             return redirect(url_for("libraries"))
