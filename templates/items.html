@@ -72,7 +72,10 @@
     </nav>
   {% endmacro %}
 
-  <h2>{{ _("%(title)s – Pick an Item", title=section.title) }}</h2>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">{{ _("%(title)s – Pick an Item", title=section.title) }}</h2>
+    <a href="{{ url_for('libraries') }}" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0">{{ _("← Dashboard") }}</a>
+  </div>
 
   <div class="row g-3 mb-3">
     <div class="col-md-6">

@@ -1300,3 +1300,8 @@ msgstr "F"
 msgctxt "chip"
 msgid "P"
 msgstr "A"
+
+
+#: templates/item.html
+msgid "← Items"
+msgstr "← Éléments"
