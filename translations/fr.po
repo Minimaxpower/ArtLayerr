@@ -746,10 +746,6 @@ msgid "On Plex but not in the file"
 msgstr "Sur Plex mais pas dans le fichier"
 
 #: templates/activity.html
-msgid "One point is saved per day: each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard."
-msgstr "Un point est enregistré par jour : chaque <strong>actualisation</strong> (manuelle ou automatique) et chaque image enregistrée comptent. La courbe commence le jour où cette version a été lancée pour la première fois, elle ne peut pas être reconstituée pour le passé. Les bibliothèques ignorées sont exclues, comme sur le tableau de bord."
-
-#: templates/activity.html
 #, python-format
 msgid "Only one day of data so far (%(day)s). The curve appears from the second day."
 msgstr "Une seule journée de données pour l'instant (%(day)s). La courbe apparaît à partir du deuxième jour."
@@ -1305,3 +1301,8 @@ msgstr "A"
 #: templates/item.html
 msgid "← Items"
 msgstr "← Éléments"
+
+
+#: templates/activity.html
+msgid "One point is shown per day, the last one of your day (in the time zone of your browser): each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard."
+msgstr "Un point est affiché par jour, le dernier de votre journée (selon le fuseau horaire de votre navigateur) : chaque <strong>actualisation</strong> (manuelle ou automatique) et chaque image enregistrée comptent. La courbe commence le jour où cette version a été lancée pour la première fois, elle ne peut pas être reconstituée pour le passé. Les bibliothèques ignorées sont exclues, comme sur le tableau de bord."

@@ -208,7 +208,7 @@
         <div class="small text-muted text-uppercase mb-1" style="letter-spacing: .05em;">{{ _("In the assets folder") }}</div>
         {% if art_panel.file %}
           <img src="{{ art_panel.url }}" class="rounded" style="{{ thumb_style }}" alt="{{ _("Image in the assets folder") }}" onclick="showImagePreview('{{ art_panel.url|e }}')">
-          <div class="small text-muted mt-1">{{ art_panel.file }} · {{ art_panel.when }}</div>
+          <div class="small text-muted mt-1">{{ art_panel.file }} · <time class="local-time" data-ts="{{ art_panel.ts }}">{{ art_panel.when }}</time></div>
         {% else %}
           <div class="text-muted small">{{ _("Nothing downloaded yet for this image") }}</div>
         {% endif %}

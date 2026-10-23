@@ -963,6 +963,12 @@ def _db_warn(e):
         print(f"[artlayerr] history database unavailable: {type(e).__name__}: {e}", flush=True)
 
 
+def _utc_bucket(ts):
+    """The UTC hour of a timestamp, "YYYY-MM-DDTHH": the Activity page turns it
+    into the day of the browser's own time zone."""
+    return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).strftime("%Y-%m-%dT%H")
+
+
 def record_snapshot(day=None):
     """Save today's numbers (done / total per library and kind of art) for the
     progress curve. Several calls the same day replace each other."""
@@ -982,7 +988,7 @@ def record_snapshot(day=None):
             rows.append((key, title, "logo", lib.get("logo_done") or 0, total))
             rows.append((key, title, "square", lib.get("square_done") or 0, total))
     try:
-        artdb.save_snapshot(day or datetime.date.today().isoformat(), rows)
+        artdb.save_snapshot(day or _utc_bucket(time.time()), rows)
     except Exception as e:
         _db_warn(e)
 
@@ -993,7 +999,11 @@ def _startup_snapshot():
     try:
         computed = _DASHBOARD_CACHE.get("computed_at")
         if computed and not artdb.has_snapshots():
-            record_snapshot(datetime.date.fromtimestamp(computed).isoformat())
+            record_snapshot(_utc_bucket(computed))
+        # older days only need their last point
+        artdb.compact_snapshots(
+            (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+        )
     except Exception as e:
         _db_warn(e)
 
@@ -1059,6 +1069,7 @@ def journal_view(row):
     return {
         "id": row["id"],
         "when": datetime.datetime.fromtimestamp(row["ts"]).strftime("%d/%m/%Y %H:%M"),
+        "ts": row["ts"],
         "item_title": row.get("item_title") or "?",
         "section_title": row.get("section_title") or "",
         "art_type": row["art_type"],
@@ -2589,6 +2600,7 @@ def build_art_panel(item, source, art_type, season, episode, candidates):
     name, mtime, size = found
     panel["file"] = name
     panel["when"] = datetime.datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M")
+    panel["ts"] = mtime
     panel["url"] = url_for(
         "asset_img",
         kind="movies" if item.type == "movie" else "series",
@@ -3200,7 +3212,8 @@ def activity_progress():
     days = request.args.get("days", 90, type=int)
     since = None
     if days and days > 0:
-        since = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
+        # one day more than asked: the page cuts at its own midnight (browser time zone)
+        since = (datetime.datetime.now(datetime.timezone.utc).date() - datetime.timedelta(days=days + 1)).isoformat()
     try:
         rows = artdb.snapshots(since)
     except Exception as e:

@@ -32,7 +32,7 @@
     </div>
   </div>
   <p class="small text-muted mt-2">
-    {{ _("One point is saved per day: each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard.")|safe }}
+    {{ _("One point is shown per day, the last one of your day (in the time zone of your browser): each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard.")|safe }}
   </p>
 
   <script>
@@ -54,13 +54,24 @@
       var svgNS = 'http://www.w3.org/2000/svg';
 
       function usesDash() { return document.documentElement.getAttribute('data-cue') === 'patterns'; }
+      // The server saves UTC buckets ("2026-10-23T14", or "2026-10-23" for older
+      // points); the days of the curve are the days of this browser's time zone.
+      function two(n) { return (n < 10 ? '0' : '') + n; }
+      function bucketTime(b) { return Date.parse(b.length <= 10 ? b + 'T12:00:00Z' : b + ':00:00Z'); }
       function pts(kind) {
-        return ((state.data.series || {})[kind] || []).map(function (p) {
-          return {day: p[0], t: Date.parse(p[0] + 'T00:00:00'), done: p[1], total: p[2],
-                  v: state.metric === 'pct' ? (p[2] ? p[1] / p[2] * 100 : 0) : p[1]};
+        var byDay = {};
+        ((state.data.series || {})[kind] || []).forEach(function (p) {
+          var tm = bucketTime(p[0]), d = new Date(tm);
+          var key = d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+          if (!byDay[key] || tm >= byDay[key].tm) {
+            byDay[key] = {tm: tm, day: key, t: new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(),
+                          done: p[1], total: p[2], v: state.metric === 'pct' ? (p[2] ? p[1] / p[2] * 100 : 0) : p[1]};
+          }
         });
+        var now = new Date(), cutoff = state.days > 0 ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - state.days).getTime() : 0;
+        return Object.keys(byDay).sort().map(function (k) { return byDay[k]; }).filter(function (p) { return p.t >= cutoff; });
       }
-      function fmtDay(t) { return new Date(t).toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}); }
+      function fmtDay(t) { return new Date(t).toLocaleDateString(document.documentElement.lang || undefined, {day: '2-digit', month: '2-digit'}); }
       function fmtVal(v) { return state.metric === 'pct' ? (Math.round(v * 10) / 10) + '%' : String(Math.round(v)); }
 
       function buildLegend() {

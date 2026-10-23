@@ -159,9 +159,12 @@ def journal_libraries():
 
 
 # ---- snapshots (progress curve) ---------------------------------------------
+# The "day" column holds a UTC bucket: "YYYY-MM-DDTHH" (one per hour at most), or
+# "YYYY-MM-DD" for the points saved by earlier versions. The page groups them
+# into days itself, in the time zone of the browser.
 def save_snapshot(day, rows):
-    """rows: (section_key, section_title, kind, done, total). One row per day,
-    library and kind: saving again the same day replaces the numbers."""
+    """rows: (section_key, section_title, kind, done, total). One row per bucket,
+    library and kind: saving again within the same hour replaces the numbers."""
     _ensure()
     with closing(_connect()) as conn:
         conn.executemany(
@@ -189,3 +192,17 @@ def snapshots(since_day=None):
         else:
             rows = conn.execute("SELECT * FROM snapshots ORDER BY day").fetchall()
     return [dict(r) for r in rows]
+
+
+def compact_snapshots(before_day):
+    """Keep only the last hourly point of each UTC day for the days before
+    `before_day` (YYYY-MM-DD): the table stays small, the curve is per day anyway."""
+    _ensure()
+    with closing(_connect()) as conn:
+        conn.execute(
+            "DELETE FROM snapshots WHERE length(day) > 10 AND substr(day, 1, 10) < ? AND day <> ("
+            "SELECT MAX(s2.day) FROM snapshots s2 WHERE substr(s2.day, 1, 10) = substr(snapshots.day, 1, 10) "
+            "AND s2.section_key = snapshots.section_key AND s2.kind = snapshots.kind)",
+            (before_day,),
+        )
+        conn.commit()

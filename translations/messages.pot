@@ -6,7 +6,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Native-Name: \n"
 
-#: app.py:1366
+#: app.py:1377
 #, python-format
 msgid " (line %(line)s, column %(column)s)"
 msgstr ""
@@ -100,7 +100,7 @@ msgstr ""
 msgid "%(title)s: %(done)s done, %(missing)s missing, %(total)s total"
 msgstr ""
 
-#: app.py:1724 app.py:2298
+#: app.py:1735 app.py:2309
 msgid "%d/%m/%Y at %H:%M"
 msgstr ""
 
@@ -140,7 +140,7 @@ msgstr ""
 msgid "? Square"
 msgstr ""
 
-#: app.py:1651
+#: app.py:1662
 msgid "A Plex token is required for this URL."
 msgstr ""
 
@@ -209,11 +209,11 @@ msgstr ""
 msgid "Assets"
 msgstr ""
 
-#: app.py:1029
+#: app.py:1039
 msgid "B"
 msgstr ""
 
-#: templates/item.html templates/items.html app.py:1047
+#: templates/item.html templates/items.html app.py:1057
 msgid "Background"
 msgstr ""
 
@@ -294,7 +294,7 @@ msgstr ""
 msgid "Could not load the data."
 msgstr ""
 
-#: app.py:2014
+#: app.py:2025
 #, python-format
 msgid "Could not read \"%(name)s\": %(error)s"
 msgstr ""
@@ -335,16 +335,16 @@ msgstr ""
 msgid "Display"
 msgstr ""
 
-#: templates/item.html app.py:1046
+#: templates/item.html app.py:1056
 msgid "Download"
 msgstr ""
 
-#: app.py:3273
+#: app.py:3286
 #, python-format
 msgid "Download again failed: %(error)s"
 msgstr ""
 
-#: app.py:3084
+#: app.py:3096
 #, python-format
 msgid "Download from URL failed: %(error)s"
 msgstr ""
@@ -353,7 +353,7 @@ msgstr ""
 msgid "Download this image again? It replaces the current file."
 msgstr ""
 
-#: app.py:1371
+#: app.py:1382
 #, python-format
 msgid "Duplicate key \"%(key)s\" at line %(line)s: only the last occurrence is used."
 msgstr ""
@@ -442,7 +442,7 @@ msgstr ""
 msgid "Force Plex to re-scan (otherwise, shows scanned within the last 10 minutes are reused, making the re-scan nearly instantaneous)"
 msgstr ""
 
-#: app.py:1046
+#: app.py:1056
 msgid "From URL"
 msgstr ""
 
@@ -450,7 +450,7 @@ msgstr ""
 msgid "From a URL"
 msgstr ""
 
-#: app.py:1029
+#: app.py:1039
 msgid "GB"
 msgstr ""
 
@@ -526,7 +526,7 @@ msgstr ""
 msgid "Journal"
 msgstr ""
 
-#: app.py:1029
+#: app.py:1039
 msgid "KB"
 msgstr ""
 
@@ -554,7 +554,7 @@ msgstr ""
 msgid "Library"
 msgstr ""
 
-#: app.py:2177 app.py:2723 app.py:1966
+#: app.py:2188 app.py:2735 app.py:1977
 msgid "Library not found."
 msgstr ""
 
@@ -566,7 +566,7 @@ msgstr ""
 msgid "Log out"
 msgstr ""
 
-#: templates/item.html templates/items.html app.py:1047
+#: templates/item.html templates/items.html app.py:1057
 msgid "Logo"
 msgstr ""
 
@@ -582,7 +582,7 @@ msgstr ""
 msgid "Logos / square are switched on, but they have not been scanned yet — click “Update” to see them."
 msgstr ""
 
-#: app.py:1029
+#: app.py:1039
 msgid "MB"
 msgstr ""
 
@@ -599,7 +599,7 @@ msgstr ""
 msgid "Missing"
 msgstr ""
 
-#: app.py:1775
+#: app.py:1786
 msgid "Missing backgrounds"
 msgstr ""
 
@@ -607,7 +607,7 @@ msgstr ""
 msgid "Missing backgrounds, whole library"
 msgstr ""
 
-#: app.py:1779
+#: app.py:1790
 msgid "Missing episodes"
 msgstr ""
 
@@ -615,7 +615,7 @@ msgstr ""
 msgid "Missing episodes, whole library"
 msgstr ""
 
-#: app.py:1776
+#: app.py:1787
 msgid "Missing logos"
 msgstr ""
 
@@ -623,7 +623,7 @@ msgstr ""
 msgid "Missing logos, whole library"
 msgstr ""
 
-#: app.py:1774
+#: app.py:1785
 msgid "Missing posters"
 msgstr ""
 
@@ -631,7 +631,7 @@ msgstr ""
 msgid "Missing posters, whole library"
 msgstr ""
 
-#: app.py:1778
+#: app.py:1789
 msgid "Missing seasons"
 msgstr ""
 
@@ -639,7 +639,7 @@ msgstr ""
 msgid "Missing seasons, whole library"
 msgstr ""
 
-#: app.py:1777
+#: app.py:1788
 msgid "Missing square"
 msgstr ""
 
@@ -659,12 +659,12 @@ msgstr ""
 msgid "Next Item"
 msgstr ""
 
-#: app.py:2757
+#: app.py:2769
 #, python-format
 msgid "No %(label)s missing — filter removed."
 msgstr ""
 
-#: app.py:3048
+#: app.py:3060
 msgid "No URL provided."
 msgstr ""
 
@@ -672,7 +672,7 @@ msgstr ""
 msgid "No data yet: the curve fills in as you use ArtLayerr."
 msgstr ""
 
-#: app.py:3110 app.py:2001
+#: app.py:3122 app.py:2012
 msgid "No files selected."
 msgstr ""
 
@@ -680,7 +680,7 @@ msgstr ""
 msgid "No image"
 msgstr ""
 
-#: app.py:2755
+#: app.py:2767
 #, python-format
 msgid "No item with %(label)s — filter removed."
 msgstr ""
@@ -701,11 +701,11 @@ msgstr ""
 msgid "Nothing downloaded yet for this image"
 msgstr ""
 
-#: app.py:1808
+#: app.py:1819
 msgid "Nothing missing here — everything is covered."
 msgstr ""
 
-#: app.py:1979
+#: app.py:1990
 msgid "Nothing missing — nothing to export."
 msgstr ""
 
@@ -746,7 +746,7 @@ msgid "On Plex but not in the file"
 msgstr ""
 
 #: templates/activity.html
-msgid "One point is saved per day: each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard."
+msgid "One point is shown per day, the last one of your day (in the time zone of your browser): each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard."
 msgstr ""
 
 #: templates/activity.html
@@ -815,39 +815,39 @@ msgstr ""
 msgid "Plex only"
 msgstr ""
 
-#: app.py:1975 app.py:2186 app.py:2746
+#: app.py:1986 app.py:2197 app.py:2758
 msgid "Plex took too long to respond (busy server or large library). Try again in a moment."
 msgstr ""
 
-#: templates/item.html templates/items.html app.py:1047
+#: templates/item.html templates/items.html app.py:1057
 msgid "Poster"
 msgstr ""
 
-#: app.py:2569
+#: app.py:2580
 msgid "Poster: checking against Plex…"
 msgstr ""
 
-#: app.py:2557
+#: app.py:2568
 msgid "Poster: in the assets folder"
 msgstr ""
 
-#: app.py:2533
+#: app.py:2544
 msgid "Poster: in the assets folder (Plex gave nothing to compare it with)"
 msgstr ""
 
-#: app.py:2532
+#: app.py:2543
 msgid "Poster: in the assets folder, not sent to Plex yet (Kometa has not run since)"
 msgstr ""
 
-#: app.py:2551 app.py:2631
+#: app.py:2562 app.py:2643
 msgid "Poster: only on Plex, nothing in the assets folder yet"
 msgstr ""
 
-#: app.py:2528
+#: app.py:2539
 msgid "Poster: this exact file is in Plex and is the image Plex shows"
 msgstr ""
 
-#: app.py:2530
+#: app.py:2541
 msgid "Poster: this file was sent to Plex (Kometa applied it); Plex now shows a later image, for example with overlays"
 msgstr ""
 
@@ -855,7 +855,7 @@ msgstr ""
 msgid "Posters"
 msgstr ""
 
-#: app.py:2316
+#: app.py:2327
 msgid "Posters/backgrounds check completed."
 msgstr ""
 
@@ -879,11 +879,11 @@ msgstr ""
 msgid "Progress over time"
 msgstr ""
 
-#: app.py:1334
+#: app.py:1345
 msgid "PyYAML is not installed in the container: add \"PyYAML\" to requirements.txt and rebuild. Until then, only the show-level comparison (without the season/episode detail) is available."
 msgstr ""
 
-#: app.py:1046
+#: app.py:1056
 msgid "Re-download"
 msgstr ""
 
@@ -895,11 +895,11 @@ msgstr ""
 msgid "Red-green colorblind"
 msgstr ""
 
-#: app.py:1956
+#: app.py:1967
 msgid "Run a check first (🔄 Update) before exporting."
 msgstr ""
 
-#: app.py:2749
+#: app.py:2761
 msgid "Run a check first before using this filter."
 msgstr ""
 
@@ -907,7 +907,7 @@ msgstr ""
 msgid "Run the check again to retry."
 msgstr ""
 
-#: app.py:3023 app.py:3141 app.py:3082
+#: app.py:3035 app.py:3153 app.py:3094
 #, python-format
 msgid "Saved to %(path)s"
 msgstr ""
@@ -928,7 +928,7 @@ msgstr ""
 msgid "Season"
 msgstr ""
 
-#: templates/item.html app.py:1040
+#: templates/item.html app.py:1050
 #, python-format
 msgid "Season %(n)s"
 msgstr ""
@@ -1025,7 +1025,7 @@ msgstr ""
 msgid "Sort order"
 msgstr ""
 
-#: app.py:1040
+#: app.py:1050
 msgid "Specials"
 msgstr ""
 
@@ -1077,7 +1077,7 @@ msgstr ""
 msgid "This file was sent to Plex (Kometa applied it). Plex now shows a later image, for example the same one with your overlays."
 msgstr ""
 
-#: app.py:3238
+#: app.py:3251
 msgid "This image has no source to download again (it was uploaded from a file)."
 msgstr ""
 
@@ -1115,7 +1115,7 @@ msgstr[1] ""
 msgid "Unit"
 msgstr ""
 
-#: templates/item.html app.py:1046
+#: templates/item.html app.py:1056
 msgid "Upload"
 msgstr ""
 
@@ -1155,7 +1155,7 @@ msgstr ""
 msgid "Wrong password."
 msgstr ""
 
-#: app.py:1368
+#: app.py:1379
 #, python-format
 msgid "YAML syntax error%(where)s: %(problem)s"
 msgstr ""
@@ -1173,7 +1173,7 @@ msgstr ""
 msgid "auto-update every %(hours)s h"
 msgstr ""
 
-#: app.py:1766 app.py:734
+#: app.py:1777 app.py:734
 msgid "backgrounds"
 msgstr ""
 
@@ -1187,11 +1187,11 @@ msgctxt "chip"
 msgid "P"
 msgstr ""
 
-#: app.py:1770 app.py:738
+#: app.py:1781 app.py:738
 msgid "episodes"
 msgstr ""
 
-#: app.py:1767 app.py:735
+#: app.py:1778 app.py:735
 msgid "logos"
 msgstr ""
 
@@ -1199,7 +1199,7 @@ msgstr ""
 msgid "movie"
 msgstr ""
 
-#: app.py:1765 app.py:733
+#: app.py:1776 app.py:733
 msgid "posters"
 msgstr ""
 
@@ -1207,7 +1207,7 @@ msgstr ""
 msgid "replaced"
 msgstr ""
 
-#: app.py:1769 app.py:737
+#: app.py:1780 app.py:737
 msgid "seasons"
 msgstr ""
 
@@ -1215,11 +1215,11 @@ msgstr ""
 msgid "show"
 msgstr ""
 
-#: app.py:1768 app.py:736
+#: app.py:1779 app.py:736
 msgid "square"
 msgstr ""
 
-#: app.py:3256
+#: app.py:3269
 msgid "the source did not return an image"
 msgstr ""
 

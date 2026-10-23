@@ -16,7 +16,7 @@
                 <img src="{{ e.preview }}" loading="lazy" alt="" class="rounded" style="height: 44px; max-width: 60px; object-fit: contain;" onerror="this.style.visibility='hidden'">
               {% endif %}
             </td>
-            <td class="text-nowrap small">{{ e.when }}</td>
+            <td class="text-nowrap small"><time class="local-time" data-ts="{{ e.ts }}">{{ e.when }}</time></td>
             {% if show_item %}
               <td><a href="{{ e.open_url }}">{{ e.item_title }}</a>{% if e.section_title %}<div class="small text-muted">{{ e.section_title }}</div>{% endif %}</td>
             {% endif %}
