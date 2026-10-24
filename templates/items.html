@@ -20,7 +20,7 @@
   {# ——— Where the poster lives: on Plex only, in /assets (not applied yet), or both ——— #}
   {% macro src_badge(state, tip, rk=none) %}
     {% set cls = {'plex': 'bg-secondary text-white st-no', 'assets': 'bg-warning text-dark st-part', 'both': 'bg-success text-white st-ok', 'checking': 'bg-secondary bg-opacity-50 text-white'}[state] %}
-    <span class="badge rounded-pill flex-shrink-0 src-badge {{ cls }}" style="font-size: .62rem;" title="{{ tip }}"{% if rk %} data-rk="{{ rk }}"{% endif %}><span class="cue-ic" aria-hidden="true">{{ {'plex': '–', 'assets': '◐', 'both': '✓', 'checking': ''}[state] }}</span>{{ {'plex': 'Plex', 'assets': _('Assets'), 'both': _('Both'), 'checking': '…'}[state] }}</span>
+    <span class="badge rounded-pill flex-shrink-0 src-badge {{ cls }}" style="font-size: .62rem;" title="{{ tip }}"{% if rk %} data-rk="{{ rk }}"{% endif %}><span class="cue-ic" aria-hidden="true">{{ {'plex': '–', 'assets': '◐', 'both': '', 'checking': ''}[state] }}</span>{{ {'plex': 'Plex', 'assets': _('Assets'), 'both': '✓', 'checking': '…'}[state] }}</span>
   {% endmacro %}
 
   {# ——— Reusable pagination (compact at the top, full at the bottom) ——— #}
@@ -184,7 +184,7 @@
 
   {% if checked %}
     <div class="small text-muted mb-3">
-      {{ _("Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>Both</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked.")|safe }}
+      {{ _("Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>✓</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked.")|safe }}
     </div>
   {% endif %}
 
@@ -292,8 +292,8 @@
       var badges = [].slice.call(document.querySelectorAll('.src-badge[data-rk]'));
       if (!badges.length) return;
       var CLS = {plex: 'bg-secondary text-white st-no', assets: 'bg-warning text-dark st-part', both: 'bg-success text-white st-ok'};
-      var ICON = {plex: '–', assets: '◐', both: '✓'};
-      var TXT = {{ {'plex': 'Plex', 'assets': _('Assets'), 'both': _('Both')}|tojson }};
+      var ICON = {plex: '–', assets: '◐', both: ''};
+      var TXT = {{ {'plex': 'Plex', 'assets': _('Assets'), 'both': '✓'}|tojson }};
       var ERR = {{ _('Could not check this poster')|tojson }};
       var url = "{{ url_for('art_status') }}";
       var i = 0, running = 0, MAX = 3;

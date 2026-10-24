@@ -221,10 +221,6 @@ msgstr "Fond"
 msgid "Backgrounds"
 msgstr "Fonds"
 
-#: templates/items.html
-msgid "Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>Both</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked."
-msgstr "Badge à côté de chaque titre : <strong>Plex</strong> = uniquement sur Plex, <strong>Assets</strong> = dans le dossier assets mais pas encore envoyé à Plex, <strong>Les deux</strong> = ce fichier exact a été envoyé à Plex (vérifié en comparant le fichier avec ce que Plex contient). Un « … » signifie que la carte est en cours de vérification."
-
 #: templates/connect.html
 msgid "Base Image Asset directory"
 msgstr "Dossier de base des images (assets)"
@@ -236,10 +232,6 @@ msgstr "URL de base"
 #: templates/base.html
 msgid "Blue-yellow colorblind"
 msgstr "Daltonisme bleu-jaune"
-
-#: templates/items.html
-msgid "Both"
-msgstr "Les deux"
 
 #: templates/items.html templates/libraries.html
 msgid "CSV (spreadsheet)"
@@ -1306,3 +1298,8 @@ msgstr "← Éléments"
 #: templates/activity.html
 msgid "One point is shown per day, the last one of your day (in the time zone of your browser): each <strong>Update</strong> (manual or automatic) and each image you save count. The curve starts the day this version was first started, it cannot be rebuilt for the past. Ignored libraries are left out, like on the dashboard."
 msgstr "Un point est affiché par jour, le dernier de votre journée (selon le fuseau horaire de votre navigateur) : chaque <strong>actualisation</strong> (manuelle ou automatique) et chaque image enregistrée comptent. La courbe commence le jour où cette version a été lancée pour la première fois, elle ne peut pas être reconstituée pour le passé. Les bibliothèques ignorées sont exclues, comme sur le tableau de bord."
+
+
+#: templates/items.html
+msgid "Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>✓</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked."
+msgstr "Badge à côté de chaque titre : <strong>Plex</strong> = uniquement sur Plex, <strong>Assets</strong> = dans le dossier assets mais pas encore envoyé à Plex, <strong>✓</strong> = ce fichier exact a été envoyé à Plex (vérifié en comparant le fichier avec ce que Plex contient). Un « … » signifie que la carte est en cours de vérification."

@@ -222,7 +222,7 @@ msgid "Backgrounds"
 msgstr ""
 
 #: templates/items.html
-msgid "Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>Both</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked."
+msgid "Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>✓</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked."
 msgstr ""
 
 #: templates/connect.html
@@ -235,10 +235,6 @@ msgstr ""
 
 #: templates/base.html
 msgid "Blue-yellow colorblind"
-msgstr ""
-
-#: templates/items.html
-msgid "Both"
 msgstr ""
 
 #: templates/items.html templates/libraries.html
