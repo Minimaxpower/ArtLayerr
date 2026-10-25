@@ -1303,3 +1303,48 @@ msgstr "Un point est affiché par jour, le dernier de votre journée (selon le f
 #: templates/items.html
 msgid "Badge next to each title: <strong>Plex</strong> = only on Plex, <strong>Assets</strong> = in the assets folder but not sent to Plex yet, <strong>✓</strong> = this exact file has been sent to Plex (checked by comparing the file with what Plex holds). A “…” means the card is being checked."
 msgstr "Badge à côté de chaque titre : <strong>Plex</strong> = uniquement sur Plex, <strong>Assets</strong> = dans le dossier assets mais pas encore envoyé à Plex, <strong>✓</strong> = ce fichier exact a été envoyé à Plex (vérifié en comparant le fichier avec ce que Plex contient). Un « … » signifie que la carte est en cours de vérification."
+
+
+#: templates/search.html
+#, python-format
+msgid "%(library)s: %(n)s result"
+msgid_plural "%(library)s: %(n)s results"
+msgstr[0] "%(library)s : %(n)s résultat"
+msgstr[1] "%(library)s : %(n)s résultats"
+
+#: templates/search.html
+#, python-format
+msgid "%(n)s title found for “%(q)s”"
+msgid_plural "%(n)s titles found for “%(q)s”"
+msgstr[0] "%(n)s titre trouvé pour « %(q)s »"
+msgstr[1] "%(n)s titres trouvés pour « %(q)s »"
+
+#: templates/search.html
+#, python-format
+msgid "No title matches “%(q)s”."
+msgstr "Aucun titre ne correspond à « %(q)s »."
+
+#: templates/base.html templates/search.html
+msgid "Search all libraries"
+msgstr "Rechercher dans toutes les bibliothèques"
+
+#: templates/base.html templates/search.html
+msgid "Search all libraries…"
+msgstr "Rechercher dans toutes les bibliothèques…"
+
+#: templates/search.html
+msgid "Searching…"
+msgstr "Recherche…"
+
+#: templates/search.html
+#, python-format
+msgid "Showing the first %(n)s results."
+msgstr "Affichage des %(n)s premiers résultats."
+
+#: templates/search.html
+msgid "Tip: press / on any page to jump to the search box. The first search after a restart loads every library from Plex and can take a moment."
+msgstr "Astuce : appuyez sur / sur n'importe quelle page pour aller dans la zone de recherche. La première recherche après un redémarrage charge toutes les bibliothèques depuis Plex et peut prendre un moment."
+
+#: templates/search.html
+msgid "Type a title to search all your libraries."
+msgstr "Saisissez un titre pour chercher dans toutes vos bibliothèques."

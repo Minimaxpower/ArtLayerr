@@ -1603,14 +1603,16 @@ def _store_section_items(section, items):
     _evict_items()
 
 
-def get_section_items(section, sort=None, force=False):
+def get_section_items(section, sort=None, force=False, max_age=None):
     """The titles of a library (sorted when `sort` is given), from the cache when
-    it is recent enough, otherwise from Plex. Always returns fresh copies."""
+    it is recent enough (`max_age` seconds, ITEMS_CACHE_SECONDS by default),
+    otherwise from Plex. Always returns fresh copies."""
     key = _items_key(section)
+    ttl = ITEMS_CACHE_SECONDS if max_age is None else max_age
     if ITEMS_CACHE_SECONDS > 0 and not force:
         with _ITEMS_LOCK:
             hit = _ITEMS_CACHE.get(key)
-            if hit and time.time() - hit["at"] < ITEMS_CACHE_SECONDS:
+            if hit and time.time() - hit["at"] < ttl:
                 hit["used"] = time.time()
                 items = [copy.copy(i) for i in hit["items"]]
                 return sort_items(items, sort) if sort else items
@@ -1620,7 +1622,7 @@ def get_section_items(section, sort=None, force=False):
         if ITEMS_CACHE_SECONDS > 0 and not force:
             with _ITEMS_LOCK:
                 hit = _ITEMS_CACHE.get(key)
-                if hit and time.time() - hit["at"] < ITEMS_CACHE_SECONDS:
+                if hit and time.time() - hit["at"] < ttl:
                     hit["used"] = time.time()
                     items = [copy.copy(i) for i in hit["items"]]
                     return sort_items(items, sort) if sort else items
@@ -3163,6 +3165,72 @@ def upload_file():
             art_page=ctx["art_page"],
             missing_type=ctx["missing_type"] if ctx["missing_type"] else None,
         )
+    )
+
+
+# ---- global search -------------------------------------------------------------
+SEARCH_MAX_RESULTS = 120
+SEARCH_STALE_SECONDS = 6 * 3600   # a title list cached a few hours ago is good enough to search in
+
+
+def _fold(text):
+    """Lower case without accents, so "amelie" finds "Amélie"."""
+    text = unicodedata.normalize("NFKD", str(text or ""))
+    return "".join(c for c in text if not unicodedata.combining(c)).casefold()
+
+
+def _search_score(item, phrase, tokens):
+    """None when the title does not match every word of the search; otherwise
+    0 (the title starts with it), 1 (contains the whole phrase) or 2 (the words are
+    spread in the title, the original title or the year)."""
+    title = _fold(item.title)
+    haystack = " ".join((title, _fold(getattr(item, "originalTitle", None)), str(getattr(item, "year", "") or "")))
+    if not all(t in haystack for t in tokens):
+        return None
+    if title.startswith(phrase):
+        return 0
+    return 1 if phrase in title else 2
+
+
+@app.route("/search")
+def search():
+    plex = get_plex()
+    if not plex:
+        return redirect(url_for("connect"))
+    q = request.args.get("q", "").strip()
+    groups, total = [], 0
+    if q:
+        phrase = _fold(" ".join(q.split()))
+        tokens = phrase.split()
+        for section in sorted(plex.library.sections(), key=lambda s: sort_key(s.title)):
+            if section.type not in ("movie", "show"):
+                continue
+            try:
+                items = get_section_items(section, max_age=SEARCH_STALE_SECONDS)
+            except requests.exceptions.RequestException:
+                continue
+            hits = [(score, i) for i in items for score in [_search_score(i, phrase, tokens)] if score is not None]
+            if not hits:
+                continue
+            hits.sort(key=lambda h: (h[0], sort_key(h[1].title)))
+            total += len(hits)
+            groups.append({"section": section, "hits": [i for _score, i in hits], "entries": [], "count": len(hits)})
+        # too many results: share the places between the libraries, one title in turn,
+        # so a big library does not hide the others
+        room, taken = SEARCH_MAX_RESULTS, True
+        while room > 0 and taken:
+            taken = False
+            for g in groups:
+                if room > 0 and len(g["entries"]) < len(g["hits"]):
+                    g["entries"].append(g["hits"][len(g["entries"])])
+                    room -= 1
+                    taken = True
+        for g in groups:
+            annotate_asset_flags(g["entries"])
+    shown_total = sum(len(g["entries"]) for g in groups)
+    return render_template(
+        "search.html", q=q, groups=[g for g in groups if g["entries"]], total=total,
+        truncated=total > shown_total, shown_total=shown_total,
     )
 
 

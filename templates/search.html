@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .chip-group { display: inline-flex; gap: 1px; border-radius: 999px; overflow: hidden; max-width: 100%; }
+  .chip-cell { font-size: .68rem; line-height: 1.15rem; padding: 0 .5rem; font-weight: 600; letter-spacing: 0; white-space: nowrap; text-align: center; min-width: 1.6rem; }
+</style>
+{% macro cell(label, state, tip) %}
+  <span class="chip-cell st-{{ state }} {{ {'ok': 'bg-success text-white', 'part': 'bg-info text-dark', 'no': 'bg-secondary text-white', 'unk': 'bg-light text-dark'}[state] }}" title="{{ tip }}"><span class="cue-ic" aria-hidden="true">{{ {'ok': '✓', 'part': '◐', 'no': '✕', 'unk': '?'}[state] }}</span>{{ label }}</span>
+{% endmacro %}
+{% macro flag(label, value, name) %}
+  {{ cell(label, 'unk' if value is none else ('ok' if value else 'no'), (_('%(name)s: not checked yet', name=name) if value is none else (_('%(name)s: present', name=name) if value else _('%(name)s: missing', name=name)))) }}
+{% endmacro %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">{{ _("Search all libraries") }}</h2>
+  <a href="{{ url_for('libraries') }}" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0">{{ _("← Dashboard") }}</a>
+</div>
+
+<form action="{{ url_for('search') }}" method="get" class="d-flex gap-2 mb-2" id="search-form">
+  <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="{{ _("Search all libraries…") }}" aria-label="{{ _("Search all libraries") }}" autofocus>
+  <button type="submit" class="btn btn-primary text-nowrap" id="search-submit">{{ _("Search") }}</button>
+</form>
+<p class="small text-muted mb-4">{{ _("Tip: press / on any page to jump to the search box. The first search after a restart loads every library from Plex and can take a moment.") }}</p>
+
+{% if not q %}
+  <div class="alert alert-secondary">{{ _("Type a title to search all your libraries.") }}</div>
+{% elif not groups %}
+  <div class="alert alert-secondary">{{ _("No title matches “%(q)s”.", q=q) }}</div>
+{% else %}
+  <p class="text-muted">
+    {{ ngettext("%(n)s title found for “%(q)s”", "%(n)s titles found for “%(q)s”", total, q=q) }}{% if truncated %} · {{ _("Showing the first %(n)s results.", n=shown_total) }}{% endif %}
+  </p>
+  {% for g in groups %}
+    <h6 class="text-uppercase small text-muted mb-2 mt-4" style="letter-spacing: .05em;">
+      {{ ngettext("%(library)s: %(n)s result", "%(library)s: %(n)s results", g.count, library=g.section.title) }}
+    </h6>
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3 mb-3">
+      {% for item in g.entries %}
+        <div class="col">
+          <a href="{{ url_for('browse', section_key=g.section.key, page=1, rk=item.ratingKey) }}" class="text-decoration-none">
+            <div class="card poster-card h-100 position-relative">
+              <div class="position-absolute d-flex flex-column align-items-end gap-1" style="z-index: 2; top: 8px; right: 8px; max-width: 92%;">
+                <div class="chip-group">
+                  {{ flag(pgettext('chip', 'P'), item.has_poster, _('Poster')) }}
+                  {{ flag(pgettext('chip', 'B'), item.has_background, _('Background')) }}
+                  {% if show_logo %}{{ flag('L', item.has_logo, _('Logo')) }}{% endif %}
+                  {% if show_square %}{{ flag('Q', item.has_square, _('Square')) }}{% endif %}
+                </div>
+              </div>
+              {% if item.thumb %}
+                <img src="{{ url_for('plex_img', path=item.thumb) }}" class="card-img-top poster-img" style="aspect-ratio: 2 / 3; object-fit: cover;" alt="{{ item.title }}" loading="lazy">
+              {% else %}
+                <div class="d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-muted small" style="aspect-ratio: 2 / 3;">{{ _("No image") }}</div>
+              {% endif %}
+              <div class="poster-overlay">
+                <small class="text-white d-block text-truncate" title="{{ item.title }}">{{ item.title }}{% if item.year %} <span class="opacity-75">({{ item.year }})</span>{% endif %}</small>
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<script>
+  document.getElementById('search-form').addEventListener('submit', function () {
+    var btn = document.getElementById('search-submit');
+    btn.disabled = true;
+    btn.textContent = {{ _('Searching…')|tojson }};
+  });
+</script>
+{% endblock %}

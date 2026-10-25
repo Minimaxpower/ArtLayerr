@@ -29,3 +29,17 @@
     el.setAttribute('datetime', d.toISOString());
   });
 })();
+
+// Press "/" anywhere (outside a field) to jump to the global search box
+(function() {
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (document.activeElement && document.activeElement.isContentEditable)) return;
+    var box = document.getElementById('global-search');
+    if (!box) return;
+    e.preventDefault();
+    box.focus();
+    box.select();
+  });
+})();

@@ -196,6 +196,8 @@ The **Settings** menu (top right) gathers the display options:
 
 Libraries you don't want to count (a test library, a kids' library…) can be left out of the dashboard totals: click the eye icon on the library's card (open eye = counted, crossed-out eye = ignored). It stays visible, greyed out, and you can still open it; click the eye again to count it. Ignored libraries are also left out of the rings' pickers and of the dashboard export. The choice is saved on the server.
 
+The **search box** in the top bar (press `/` on any page to jump to it) searches the titles of all your movie and show libraries at once, ignoring case and accents (`amelie` finds *Amélie*) and matching the original title and the year too (`dark 2017`). Results are grouped by library, with the same P / B (and L / Q) chips as the lists, and open the item page. It uses the libraries already loaded in memory (see `ITEMS_CACHE_SECONDS`), so after a restart the first search loads every library from Plex and can take a moment. It shows at most 120 titles, shared between the libraries.
+
 If you click on Mediux Check, you can select one or more [Mediux](https://mediux.pro) files to compare them with your library and see if you're missing anything.
 
 ![](images/mediux-check.jpg)

@@ -265,7 +265,10 @@
         </a>
         <a href="https://github.com/Minimaxpower/ArtLayerr/releases" target="_blank" rel="noopener" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary-emphasis fw-normal text-decoration-none me-1" title="ArtLayerr {{ app_version }}">{{ app_version.split("-")[0] }}</a>
         {% if update_info %}<a href="{{ update_info.url }}" target="_blank" rel="noopener" class="badge rounded-pill bg-warning text-dark text-decoration-none me-1" title="{{ _("ArtLayerr %(version)s is available. To update: docker compose pull && docker compose up -d", version=update_info.version) }}">{{ _("⬆ %(version)s available", version=update_info.version) }}</a>{% endif %}
-        {% if request.endpoint != 'login' %}<a href="{{ url_for('mediux_check') }}" class="btn btn-outline-secondary btn-sm ms-3">{{ _("Mediux Check") }}</a><a href="{{ url_for('activity') }}" class="btn btn-outline-secondary btn-sm ms-2">{{ _("Activity") }}</a>{% endif %}
+        {% if request.endpoint != 'login' %}<a href="{{ url_for('mediux_check') }}" class="btn btn-outline-secondary btn-sm ms-3">{{ _("Mediux Check") }}</a><a href="{{ url_for('activity') }}" class="btn btn-outline-secondary btn-sm ms-2">{{ _("Activity") }}</a>
+        <form action="{{ url_for('search') }}" method="get" class="d-flex ms-2 mb-0" role="search">
+          <input id="global-search" type="search" name="q" value="{{ q if request.endpoint == 'search' else '' }}" class="form-control form-control-sm" style="width: 13rem;" placeholder="{{ _("Search all libraries…") }}" aria-label="{{ _("Search all libraries") }}" title="{{ _("Search all libraries") }}">
+        </form>{% endif %}
         <div class="dropdown ms-auto">
           <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">{{ _("⚙ Settings") }}</button>
           <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width: 250px;">
