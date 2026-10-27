@@ -349,12 +349,17 @@ msgstr ""
 msgid "Download"
 msgstr ""
 
-#: app.py:3347
+#: app.py:3388
 #, python-format
 msgid "Download again failed: %(error)s"
 msgstr ""
 
-#: app.py:3098
+#: app.py:3072
+#, python-format
+msgid "Download failed: %(error)s"
+msgstr ""
+
+#: app.py:3135
 #, python-format
 msgid "Download from URL failed: %(error)s"
 msgstr ""
@@ -674,7 +679,7 @@ msgstr ""
 msgid "No %(label)s missing — filter removed."
 msgstr ""
 
-#: app.py:3062
+#: app.py:3100
 msgid "No URL provided."
 msgstr ""
 
@@ -682,7 +687,7 @@ msgstr ""
 msgid "No data yet: the curve fills in as you use ArtLayerr."
 msgstr ""
 
-#: app.py:3124 app.py:2014
+#: app.py:3161 app.py:2014
 msgid "No files selected."
 msgstr ""
 
@@ -922,7 +927,7 @@ msgstr ""
 msgid "Run the check again to retry."
 msgstr ""
 
-#: app.py:3037 app.py:3155 app.py:3096
+#: app.py:3086 app.py:3192 app.py:3133
 #, python-format
 msgid "Saved to %(path)s"
 msgstr ""
@@ -1109,7 +1114,7 @@ msgstr ""
 msgid "This file was sent to Plex (Kometa applied it). Plex now shows a later image, for example the same one with your overlays."
 msgstr ""
 
-#: app.py:3312
+#: app.py:3356
 msgid "This image has no source to download again (it was uploaded from a file)."
 msgstr ""
 
@@ -1259,7 +1264,12 @@ msgstr ""
 msgid "square"
 msgstr ""
 
-#: app.py:3330
+#: app.py:3029
+#, python-format
+msgid "the source answered with an error (HTTP %(code)s)"
+msgstr ""
+
+#: app.py:3031
 msgid "the source did not return an image"
 msgstr ""
 

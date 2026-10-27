@@ -1348,3 +1348,14 @@ msgstr "Astuce : appuyez sur / sur n'importe quelle page pour aller dans la zone
 #: templates/search.html
 msgid "Type a title to search all your libraries."
 msgstr "Saisissez un titre pour chercher dans toutes vos bibliothèques."
+
+
+#: app.py:3072
+#, python-format
+msgid "Download failed: %(error)s"
+msgstr "Échec du téléchargement : %(error)s"
+
+#: app.py:3029
+#, python-format
+msgid "the source answered with an error (HTTP %(code)s)"
+msgstr "la source a répondu par une erreur (HTTP %(code)s)"

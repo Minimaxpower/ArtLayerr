@@ -2998,6 +2998,40 @@ def get_download_context(form):
     }
 
 
+# ---- fetching an image safely ------------------------------------------------------
+# The three ways to save an image (Download, pasted URL, Download again) used to
+# write whatever came back. When a server answers with an error page instead of
+# an image, that text ended up in poster.jpg and the title counted as "done".
+_IMAGE_MAGIC = (b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n", b"GIF87a", b"GIF89a")
+_TOKEN_RE = re.compile(r"X-Plex-Token=[^&\s'\"<>]+", re.IGNORECASE)
+
+
+def _safe_error(e):
+    """An error text that can be shown: never the Plex token that sits in the URL."""
+    return _TOKEN_RE.sub("X-Plex-Token=…", str(e))[:300]
+
+
+def _looks_like_image(resp):
+    head = resp.content[:16]
+    if head.startswith(_IMAGE_MAGIC) or (head[:4] == b"RIFF" and head[8:12] == b"WEBP"):
+        return True
+    return bool(resp.content) and resp.headers.get("Content-Type", "").lower().startswith("image/")
+
+
+def _fetch_image(url, timeout=30):
+    """GET an image. Raises ValueError, with a message that is safe to show,
+    when the answer is an error or not an image: nothing is written then."""
+    try:
+        resp = requests.get(url, timeout=timeout)
+    except requests.exceptions.RequestException as e:
+        raise ValueError(_safe_error(e)) from None
+    if resp.status_code >= 400:
+        raise ValueError(tr("the source answered with an error (HTTP %(code)s)", code=resp.status_code))
+    if not _looks_like_image(resp):
+        raise ValueError(tr("the source did not return an image"))
+    return resp
+
+
 @app.route("/download", methods=["POST"])
 def download():
     plex = get_plex()
@@ -3006,6 +3040,16 @@ def download():
 
     ctx = get_download_context(request.form)
     img_key = request.form["img_key"]
+    back = url_for(
+        "browse",
+        section_key=ctx["section_key"],
+        page=ctx["item_page"],
+        art_type=ctx["art_type"],
+        season=ctx["season"],
+        episode=ctx["episode"],
+        art_page=ctx["art_page"],
+        missing_type=ctx["missing_type"] if ctx["missing_type"] else None,
+    )
 
     item = plex.fetchItem(ctx["rating_key"])
     season_item = (
@@ -3013,9 +3057,6 @@ def download():
     )
 
     base_dir = compute_asset_base_dir(item, season_item)
-    os.makedirs(base_dir, exist_ok=True)
-    _remember_dir(os.path.join(os.getcwd(), session["asset_dir"]), base_dir)
-
     ext = os.path.splitext(img_key)[1] or (".png" if ctx["art_type"] == "logo" else ".jpg")
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
 
@@ -3024,8 +3065,16 @@ def download():
     else:
         img_url = f"{session['base_url']}{img_key}&X-Plex-Token={get_token()}"
 
+    # fetch first: on a failure nothing is created or overwritten
+    try:
+        resp = _fetch_image(img_url)
+    except ValueError as e:
+        flash(tr("Download failed: %(error)s", error=e))
+        return redirect(back)
+
+    os.makedirs(base_dir, exist_ok=True)
+    _remember_dir(os.path.join(os.getcwd(), session["asset_dir"]), base_dir)
     replaced = os.path.exists(os.path.join(base_dir, filename))
-    resp = requests.get(img_url)
     with open(os.path.join(base_dir, filename), "wb") as f:
         f.write(resp.content)
 
@@ -3035,18 +3084,7 @@ def download():
     journal_log(item, ctx, base_dir, filename, "plex", img_key, replaced)
 
     flash(tr("Saved to %(path)s", path=os.path.join(base_dir, filename)))
-    return redirect(
-        url_for(
-            "browse",
-            section_key=ctx["section_key"],
-            page=ctx["item_page"],
-            art_type=ctx["art_type"],
-            season=ctx["season"],
-            episode=ctx["episode"],
-            art_page=ctx["art_page"],
-            missing_type=ctx["missing_type"] if ctx["missing_type"] else None,
-        )
-    )
+    return redirect(back)
 
 
 @app.route("/upload_url", methods=["POST"])
@@ -3086,8 +3124,7 @@ def upload_url():
     filename = compute_asset_filename(item, ctx["art_type"], ctx["season"], ctx["episode"], ext)
 
     try:
-        resp = requests.get(image_url, timeout=15)
-        resp.raise_for_status()
+        resp = _fetch_image(image_url, timeout=15)
         replaced = os.path.exists(os.path.join(base_dir, filename))
         with open(os.path.join(base_dir, filename), "wb") as f:
             f.write(resp.content)
@@ -3095,7 +3132,7 @@ def upload_url():
         journal_log(item, ctx, base_dir, filename, "url", image_url, replaced)
         flash(tr("Saved to %(path)s", path=os.path.join(base_dir, filename)))
     except Exception as e:
-        flash(tr("Download from URL failed: %(error)s", error=e))
+        flash(tr("Download from URL failed: %(error)s", error=_safe_error(e)))
 
     return redirect(
         url_for(
@@ -3331,10 +3368,7 @@ def activity_redownload(entry_id):
             img_url = source
         else:
             img_url = f"{session['base_url']}{source}&X-Plex-Token={get_token()}"
-        resp = requests.get(img_url, timeout=30)
-        resp.raise_for_status()
-        if not resp.headers.get("Content-Type", "").startswith("image/"):
-            raise ValueError(tr("the source did not return an image"))
+        resp = _fetch_image(img_url)
         path = os.path.join(base_dir, filename)
         replaced = os.path.exists(path)
         with open(path, "wb") as f:
@@ -3351,7 +3385,7 @@ def activity_redownload(entry_id):
         )
         flash(tr("Saved to %(path)s", path=path))
     except Exception as e:
-        flash(tr("Download again failed: %(error)s", error=e))
+        flash(tr("Download again failed: %(error)s", error=_safe_error(e)))
     return redirect(target)
 
 
